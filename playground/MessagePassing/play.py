@@ -22,7 +22,7 @@ class MPlayI:
         self.rank = self.comm.rank
         self.size = self.comm.size
 
-        self.logger = ColorizedLog(logging.getLogger('MPI'), self.colors[self.rank])
+        self.logger = ColorizedLog(logging.getLogger('MPI %s' % self.rank), self.colors[self.rank])
 
     @staticmethod
     def _mpi_log_setup():
@@ -35,13 +35,21 @@ class MPlayI:
         # Wait for everyone to sync up
         self.comm.Barrier()
 
+    def numpy_simple(self):
 
-        print(f"Rank {rank} before broadcast has {x}")
-        comm.Bcast([x, MPI.DOUBLE])
-        print(f"Rank {rank} after broadcast has {x}\n")
+        if self.rank == 0:
+            x = np.random.randn(4)
+        else:
+            x = np.empty(4, dtype=np.float64)
+
+        self.logger.info(f"Rank {self.rank} before broadcast has {x}")
+        self.comm.Bcast([x, MPI.DOUBLE])
+        self.logger.info(f"Rank {self.rank} after broadcast has {x}")
 
 
 if __name__ == '__main__':
     mpi_play = MPlayI()
     if sys.argv[1] == 'simple':
         mpi_play.simple()
+    elif sys.argv[1] == 'numpy_simple':
+        mpi_play.numpy_simple()

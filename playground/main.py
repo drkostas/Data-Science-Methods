@@ -116,7 +116,7 @@ def run_mpi(conf: Dict) -> None:
 
     config = conf['config']
     type = conf['type']
-
+    logger.info("Invoking play.py with type=`%s`" % type)
     sys_path = os.path.dirname(os.path.realpath(__file__))
     run_file_path = os.path.join(sys_path, 'MessagePassing', 'play.py')
     cmd = 'mpirun -n {nprocs} {python} {file} {type}'.format(nprocs=config['nprocs'],
