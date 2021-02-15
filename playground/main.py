@@ -2,6 +2,7 @@ import traceback
 import logging
 import argparse
 import os
+import sys
 import time
 from typing import Dict
 
@@ -110,6 +111,21 @@ def run_bench(conf: Dict) -> None:
         raise Exception("Config type not recognized!")
 
 
+def run_mpi(conf: Dict) -> None:
+    """ Runs the MPI tests for the specified configuration. """
+
+    config = conf['config']
+    type = conf['type']
+
+    sys_path = os.path.dirname(os.path.realpath(__file__))
+    run_file_path = os.path.join(sys_path, 'MessagePassing', 'play.py')
+    cmd = 'mpirun -n {nprocs} {python} {file} {type}'.format(nprocs=config['nprocs'],
+                                                             python=sys.executable,
+                                                             file=run_file_path,
+                                                             type=type)
+    os.system(cmd)
+
+
 @timeit
 def main():
     """This is the main function of main.py
@@ -130,8 +146,9 @@ def main():
         for bench_conf in conf.get_config(config_name='bench'):
             run_bench(bench_conf)
 
-    if 'message_passing' in conf.config_keys:
-        pass
+    if 'mpi' in conf.config_keys:
+        for mpi_conf in conf.get_config(config_name='mpi'):
+            run_mpi(mpi_conf)
 
 
 if __name__ == '__main__':

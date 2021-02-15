@@ -1,0 +1,5 @@
+tag: bench
+mpi:
+  - config:
+      nprocs: 2
+    type: simple

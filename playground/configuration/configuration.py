@@ -10,7 +10,7 @@ from jsonschema import validate as validate_json_schema
 
 from playground.fancy_log.colorized_log import ColorizedLog
 
-logger = ColorizedLog(logging.getLogger('Configuration'), 'green')
+logger = ColorizedLog(logging.getLogger('Configuration'), 'white')
 
 
 class Configuration:

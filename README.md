@@ -49,6 +49,8 @@ $ echo $SHELL
 
 ```
 
+You will also need to install MPI in your system. [Ref for Ubuntu](https://stackoverflow.com/a/41862957/7043716)
+
 ## Installing, Testing, Building <a name = "installing"></a>
 
 All the installation steps are being handled by the [Makefile](Makefile). The `server=local` flag basically specifies
