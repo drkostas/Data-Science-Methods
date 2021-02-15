@@ -1,0 +1,5 @@
+from jsonschema import validate as validate_json_schema
+config_schema = {'$schema': 'http://json-schema.org/draft-04/schema#', 'type': 'object', 'properties': {'datastore': {'type': 'string'}, 'tag': {'type': 'string'}, 'cloudstore': {'$ref': '#/definitions/cloudstore'}}, 'required': ['tag'], 'definitions': {'cloudstore': {'type': 'array', 'items': {'type': 'object'}, 'additionalProperties': False, 'required': ['subproperty1', 'subproperty2'], 'properties': {'subproperty1': {'type': 'number', 'enum': [1, 2]}, 'subproperty2': {'type': 'array'}}}}, 'additionalProperties': False}
+config = {'datastore': 1, 'cloudstore': [{'subproperty1': 10, 'subproperty2': [123, 234]}], 'tag': 'test_tag'}
+validate_json_schema(instance=config, schema=config_schema)
+config = {'datastore': '1', 'cloudstore': [{'a': 1, 'subproperty1': [12312, 123], 'subproperty2': "aa"}], 'tag': 'test_tag'}
