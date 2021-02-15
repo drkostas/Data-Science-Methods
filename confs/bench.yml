@@ -1,0 +1,18 @@
+tag: bench
+bench:
+  - config:
+      num_threads_processes:
+        - 2
+        - 8
+        - 16
+      max_float: 345.678
+      num_loops: 100000
+    type: math_calc
+  - config:
+      num_threads_processes:
+        - 2
+        - 8
+        - 16
+      max_float: 123.456
+      num_loops: 150000
+    type: fill_and_empty_list

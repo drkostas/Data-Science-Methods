@@ -18,7 +18,6 @@ class Configuration:
 
     config: Dict
     config_path: str
-    example_db: Dict
     tag: str
     config_keys: List
     env_variable_tag: str = '!ENV'

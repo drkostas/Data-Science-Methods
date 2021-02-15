@@ -3,9 +3,11 @@ import logging
 import argparse
 import os
 import time
+from typing import Dict
 
-from .fancy_log.colorized_log import ColorizedLog
-from .configuration.configuration import Configuration
+from playground.fancy_log.colorized_log import ColorizedLog
+from playground.configuration.configuration import Configuration
+from playground.Benchmarking.parallel_bench import run_math_calc_test, run_fill_and_empty_list_test
 
 logger = ColorizedLog(logging.getLogger('Main'), 'yellow')
 
@@ -65,7 +67,7 @@ def _argparser() -> argparse.Namespace:
         argparse.Namespace:
     """
     parser = argparse.ArgumentParser(
-        description='A template for python projects.',
+        description='A playground repo for the DSE-512 course..',
         add_help=False)
     # Required Args
     required_args = parser.add_argument_group('Required Arguments')
@@ -77,9 +79,9 @@ def _argparser() -> argparse.Namespace:
     required_args.add_argument('-c', '--config-file', **config_file_params)
     # Optional args
     optional_args = parser.add_argument_group('Optional Arguments')
-    optional_args.add_argument('-m', '--run-mode', choices=['run_mode_1', 'run_mode_2', 'run_mode_3'],
-                               default='run_mode_1',
-                               help='Description of the run modes')
+    # optional_args.add_argument('-m', '--run-mode', choices=['run_mode_1', 'run_mode_2', 'run_mode_3'],
+    #                            default='run_mode_1',
+    #                            help='Description of the run modes')
     optional_args.add_argument('-l', '--log',
                                default='logs/default.log',
                                help="Name of the output log file")
@@ -87,6 +89,25 @@ def _argparser() -> argparse.Namespace:
     optional_args.add_argument("-h", "--help", action="help", help="Show this help message and exit")
 
     return parser.parse_args()
+
+
+def run_bench(conf: Dict) -> None:
+    """ Runs the bench tests for the specified configuration. """
+
+    config = conf['config']
+    type = conf['type']
+    if type == 'math_calc':
+        logger.info("Starting math_calc")
+        run_math_calc_test(test_proc_threads=config['num_threads_processes'],
+                           max_float=config['max_float'],
+                           num_loops=config['num_loops'])
+    elif type == 'fill_and_empty_list':
+        logger.info("Starting fill_and_empty_list")
+        run_fill_and_empty_list_test(test_proc_threads=config['num_threads_processes'],
+                                     max_float=config['max_float'],
+                                     num_loops=config['num_loops'])
+    else:
+        raise Exception("Config type not recognized!")
 
 
 @timeit
@@ -102,12 +123,15 @@ def main():
     args = _argparser()
     _setup_log(args.log, args.debug)
     # Load the configuration
-    # configuration = Configuration(config_src=args.config_file, config_schema_path='yml_schema_strict.json')
-    configuration = Configuration(config_src=args.config_file)
-    # Prints
-    logger.info("Started with args: %s" % args)
-    logger.info("Loaded Config file: %s", configuration.to_json())
-    logger.info("Starting in run mode: {0}".format(args.run_mode))
+    conf = Configuration(config_src=args.config_file)
+
+    # Start
+    if 'bench' in conf.config_keys:
+        for bench_conf in conf.get_config(config_name='bench'):
+            run_bench(bench_conf)
+
+    if 'message_passing' in conf.config_keys:
+        pass
 
 
 if __name__ == '__main__':
