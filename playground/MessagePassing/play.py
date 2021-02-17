@@ -35,10 +35,10 @@ class MPlayI:
         # Wait for everyone to sync up
         self.comm.Barrier()
 
-    def numpy_simple(self):
+    def broadcast(self):
 
         if self.rank == 0:
-            x = np.random.randn(4)
+            x = np.random.randn(4)*100
         else:
             x = np.empty(4, dtype=np.float64)
 
@@ -51,5 +51,5 @@ if __name__ == '__main__':
     mpi_play = MPlayI()
     if sys.argv[1] == 'simple':
         mpi_play.simple()
-    elif sys.argv[1] == 'numpy_simple':
-        mpi_play.numpy_simple()
+    elif sys.argv[1] == 'broadcast':
+        mpi_play.broadcast()

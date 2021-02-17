@@ -1,8 +1,8 @@
 tag: bench
 mpi:
-  - config:
-      nprocs: 2
-    type: simple
+#  - config:
+#      nprocs: 2
+#    type: simple
   - config:
       nprocs: 3
-    type: numpy_simple
+    type: broadcast

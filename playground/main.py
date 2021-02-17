@@ -55,7 +55,6 @@ def _setup_log(log_path: str = '../logs/default.log', debug: bool = False) -> No
                         datefmt='%Y-%m-%d %H:%M:%S',
                         handlers=[
                             logging.FileHandler(log_filename),
-                            # logging.handlers.TimedRotatingFileHandler(log_filename, when='midnight', interval=1),
                             logging.StreamHandler()
                         ]
                         )
@@ -86,7 +85,8 @@ def _argparser() -> argparse.Namespace:
     optional_args.add_argument('-l', '--log',
                                default='logs/default.log',
                                help="Name of the output log file")
-    optional_args.add_argument('-d', '--debug', action='store_true', help='Enables the debug log messages')
+    optional_args.add_argument('-d', '--debug', action='store_true',
+                               help='Enables the debug log messages')
     optional_args.add_argument("-h", "--help", action="help", help="Show this help message and exit")
 
     return parser.parse_args()
