@@ -1,0 +1,16 @@
+tag: dev
+problem1:
+  - properties:
+      pool_size: 4
+      chunk_size: 1
+      x_min: 0
+      x_max: 9
+    type: default
+problem2:
+  - properties:
+      pool_size: 4
+    type: default
+problem3:
+  - properties:
+      pool_size: 4
+    type: default

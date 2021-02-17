@@ -1,5 +1,5 @@
+
 # TODO
-See the [issues](https://github.com/drkostas/starter/issues) too.
-- [X] Create Tests
-- [X] Create Readme
-- [ ] Stop Global Warming
+See the [issues](https://github.com/drkostas/DSE512-playground/issues) too.
+
+- [ ] Problem1: should x be random in [0, 9]?
