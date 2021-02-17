@@ -17,8 +17,8 @@
     + [Configuration](#configuration)
     + [Environment Variables](#env_variables)
     + [Execution Options](#execution_options)
-        + [Starter Main](#playground_main)
-        + [Starter Greet CLI](#playground_cli)
+        + [DSE-playground Main](#playground_main)
+        + [DSE-playground Greet CLI](#playground_cli)
 + [Deployment](#deployment)
 + [Continuous Ιntegration](#ci)
 + [Todo](#todo)
@@ -177,7 +177,7 @@ $ which python
 
 ```
 
-#### Starter Main <a name = "playground_main"></a>
+#### DSE-playground Main <a name = "playground_main"></a>
 
 Now, in order to run the code you can either call the [main.py](playground/main.py) directly, or invoke the `playground_main`
 console script.
@@ -219,7 +219,7 @@ Optional Arguments:
   -h, --help            Show this help message and exit
 ```
 
-#### Starter CLI <a name = "playground_cli"></a>
+#### DSE-playground CLI <a name = "playground_cli"></a>
 
 There is also a [cli.py](playground/cli.py) which you can also invoke it by its console script too
 (`cli`).
