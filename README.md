@@ -1,4 +1,4 @@
-# DSE-512 Playground<img src='https://github.com/drkostas/DSE512-playground/blob/main/img/snek.png' align='right' width='180' height='104'>
+# DSE-512 Playground<img src='https://github.com/drkostas/DSE512-playground/blob/master/img/snek.png' align='right' width='180' height='104'>
 
 [![GitHub license](https://img.shields.io/badge/license-MIT-blue.svg)](https://raw.githubusercontent.com/drkostas/DSE512-playground/master/LICENSE)
 
