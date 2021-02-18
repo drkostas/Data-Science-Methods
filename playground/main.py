@@ -15,11 +15,13 @@ logger = ColorizedLog(logging.getLogger('Main'), 'yellow')
 time_logger = ColorizedLog(logging.getLogger('Timeit'), 'white')
 
 
-def timeit(method: object) -> object:
+def timeit(method: object, custom_print: str = None) -> object:
     """Decorator for counting the execution times of functions
 
     Args:
-        method (object):
+        method: The method to wrap and time
+        custom_print: Custom print string which can be formatted using `func_name`, `args`,
+                      and `duration`. Use {0}, {1}, .. to reference the first, second, ... argument
     """
 
     @wraps(method)
@@ -27,16 +29,21 @@ def timeit(method: object) -> object:
         ts = time()
         result = method(*args, **kw)
         te = time()
-        # time_logger.info('Func: %r with args:[%r, %r] took: %2.4f sec' %
-        #                  (method.__name__, args, kw, te - ts))
-        time_logger.info('Func: %r with args: %r took: %2.5f sec' %
-                         (method.__name__, args, te - ts))
+        all_args = (*args, *kw.values()) if kw != {} else args
+        if custom_print is None:
+            print_string = 'Func: {func_name!r} with args: {args!r} took: {duration:2.5f} sec(s)'
+        else:
+            print_string = custom_print
+        time_logger.info(print_string.format(*args, func_name=method.__name__,
+                                             args=all_args,
+                                             duration=te - ts,
+                                             **kw))
         return result
 
     return timed
 
 
-def _setup_log(log_path: str = '../logs/default.log', debug: bool = False) -> None:
+def setup_log(log_path: str = '../logs/default.log', debug: bool = False) -> None:
     """Set the parameteres of the logger
 
     Args:
@@ -62,7 +69,7 @@ def _setup_log(log_path: str = '../logs/default.log', debug: bool = False) -> No
                         )
 
 
-def _argparser() -> argparse.Namespace:
+def argparser() -> argparse.Namespace:
     """Setup the argument parser
 
     Returns:
@@ -138,8 +145,8 @@ def main():
     """
 
     # Initializing
-    args = _argparser()
-    _setup_log(args.log, args.debug)
+    args = argparser()
+    setup_log(args.log, args.debug)
     # Load the configuration
     conf = Configuration(config_src=args.config_file)
 

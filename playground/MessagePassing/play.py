@@ -5,7 +5,7 @@ from mpi4py import MPI
 import numpy as np
 
 from playground.fancy_log.colorized_log import ColorizedLog
-from playground.main import _setup_log
+from playground.main import setup_log
 
 
 class MPlayI:
@@ -28,7 +28,7 @@ class MPlayI:
     def _mpi_log_setup():
         sys_path = os.path.dirname(os.path.realpath(__file__))
         log_path = os.path.join(sys_path, '..', '..', 'logs', 'mpi.log')
-        _setup_log(log_path=log_path)
+        setup_log(log_path=log_path)
 
     def simple(self):
         self.logger.info(f"Hello from rank {self.rank} of size {self.size}")
