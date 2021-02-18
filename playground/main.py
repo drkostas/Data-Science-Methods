@@ -3,7 +3,8 @@ import logging
 import argparse
 import os
 import sys
-import time
+from time import time
+from functools import wraps
 from typing import Dict
 
 from playground.fancy_log.colorized_log import ColorizedLog
@@ -11,6 +12,7 @@ from playground.configuration.configuration import Configuration
 from playground.Benchmarking.parallel_bench import run_math_calc_test, run_fill_and_empty_list_test
 
 logger = ColorizedLog(logging.getLogger('Main'), 'yellow')
+time_logger = ColorizedLog(logging.getLogger('Timeit'), 'white')
 
 
 def timeit(method: object) -> object:
@@ -20,15 +22,15 @@ def timeit(method: object) -> object:
         method (object):
     """
 
+    @wraps(method)
     def timed(*args, **kw):
-        ts = time.time()
+        ts = time()
         result = method(*args, **kw)
-        te = time.time()
-        if 'log_time' in kw:
-            name = kw.get('log_name', method.__name__.upper())
-            kw['log_time'][name] = int((te - ts) * 1000)
-        else:
-            logger.info('%r  %2.2f ms' % (method.__name__, (te - ts) * 1000))
+        te = time()
+        # time_logger.info('Func: %r with args:[%r, %r] took: %2.4f sec' %
+        #                  (method.__name__, args, kw, te - ts))
+        time_logger.info('Func: %r with args: %r took: %2.5f sec' %
+                         (method.__name__, args, te - ts))
         return result
 
     return timed
