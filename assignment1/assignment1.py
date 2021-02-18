@@ -4,13 +4,11 @@ import os
 from typing import Dict
 from math import ceil
 from itertools import repeat
-from functools import partial
-from time import time
 
 import multiprocessing
 import numpy as np
 
-from playground.main import setup_log, argparser, timeit, time_logger
+from playground.main import setup_log, argparser, timeit
 from playground.fancy_log.colorized_log import ColorizedLog
 from playground.configuration.configuration import Configuration
 
@@ -19,11 +17,6 @@ main_logger = ColorizedLog(logging.getLogger('Main'), 'yellow')
 p1_logger = ColorizedLog(logging.getLogger('Problem1'), 'blue')
 p2_logger = ColorizedLog(logging.getLogger('Problem2'), 'green')
 p3_logger = ColorizedLog(logging.getLogger('Problem3'), 'magenta')
-# Override the timeit wrapper from main.py and pass it a custom string to print
-# It already supports string formatting for func_name`, `args`, and `duration`
-# To reference the first positional argument of the function I wrap, I can use {0}
-custom_string = 'Calculation of pi for N={0} took: {duration:2.5f} sec(s) total'
-timeit_custom = partial(timeit, custom_print=custom_string)
 
 
 def my_pid(x: int) -> None:
@@ -56,7 +49,11 @@ def problem1(conf: Dict) -> None:
                  chunksize=conf_props['chunk_size'])
 
 
-@timeit_custom
+# Call the timeit wrapper from main.py and pass it a custom string to print
+# It already supports string formatting for func_name`, `args`, and `duration`
+# To reference the first positional argument of the function I wrap, I can use {0}
+custom_string = 'Calculation of pi for N={0} took: {duration:2.5f} sec(s) total'
+@timeit(custom_print=custom_string)
 def py_pi(N: int, real_pi: float) -> None:
     """ Problem 2 function to be called using pool.starmap
 
@@ -144,17 +141,18 @@ def problem3(conf: Dict) -> None:
         args = zip(repeat(num_term), i_start, i_stop)
         # Call py_pi_better() using pool.starmap() (starmap accepts iterable with multiple arguments)
         with multiprocessing.Pool(processes=conf_props['pool_size']) as pool:
-            ts = time()
-            # https://docs.python.org/3/library/multiprocessing.html#multiprocessing.pool.Pool.map
-            pool.starmap(func=py_pi_better,
-                         iterable=args,
-                         chunksize=conf_props['chunk_size'])
-            te = time()
-            time_logger.info(
-                'Calculation of pi for N={} took: {:2.5f} sec(s) total'.format(num_term, te - ts))
+            # timeit can be used as a context manager too. Pass it a custom string and count the
+            # total time to calculate pi
+            custom_string = f'Calculation of pi for N={num_term} took: ' + \
+                            '{duration:2.5f} sec(s) total'
+            with timeit(custom_print=custom_string):
+                # https://docs.python.org/3/library/multiprocessing.html#multiprocessing.pool.Pool.map
+                pool.starmap(func=py_pi_better,
+                             iterable=args,
+                             chunksize=conf_props['chunk_size'])
 
 
-@timeit
+@timeit()
 def main():
     """ This is the main function of assignment.py
 

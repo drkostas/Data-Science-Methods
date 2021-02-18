@@ -5,7 +5,8 @@ import os
 import sys
 from time import time
 from functools import wraps
-from typing import Dict
+from typing import Dict, Callable
+from contextlib import ContextDecorator
 
 from playground.fancy_log.colorized_log import ColorizedLog
 from playground.configuration.configuration import Configuration
@@ -15,32 +16,57 @@ logger = ColorizedLog(logging.getLogger('Main'), 'yellow')
 time_logger = ColorizedLog(logging.getLogger('Timeit'), 'white')
 
 
-def timeit(method: object, custom_print: str = None) -> object:
-    """Decorator for counting the execution times of functions
+class timeit(ContextDecorator):
 
-    Args:
-        method: The method to wrap and time
-        custom_print: Custom print string which can be formatted using `func_name`, `args`,
-                      and `duration`. Use {0}, {1}, .. to reference the first, second, ... argument
-    """
+    def __init__(self, **kwargs):
+        """Decorator/ContextManager for counting the execution times of functions
 
-    @wraps(method)
-    def timed(*args, **kw):
-        ts = time()
-        result = method(*args, **kw)
-        te = time()
-        all_args = (*args, *kw.values()) if kw != {} else args
-        if custom_print is None:
-            print_string = 'Func: {func_name!r} with args: {args!r} took: {duration:2.5f} sec(s)'
+        Args:
+            custom_print: Custom print string which can be formatted using `func_name`, `args`,
+                          and `duration`. Use {0}, {1}, .. to reference the first, second, ... argument
+        """
+        self.__dict__.update(kwargs)
+
+    def __call__(self, func: Callable):
+        """ This is called only when invoked as a decorator
+
+        Args:
+            method: The method to wrap
+        """
+
+        @wraps(func)
+        def timed(*args, **kwargs):
+            with self._recreate_cm():
+                self.func_name = func.__name__
+                self.args = args
+                self.kwargs = kwargs
+                self.all_args = (*args, *kwargs.values()) if kwargs != {} else args
+                return func(*args, **kwargs)
+
+        return timed
+
+    def __enter__(self, *args, **kwargs):
+        self.ts = time()
+        return self
+
+    def __exit__(self, type, value, traceback):
+        self.te = time()
+        total = self.te - self.ts
+        if hasattr(self, 'func_name'):
+            if not hasattr(self, 'custom_print'):
+                print_string = 'Func: {func_name!r} with args: {args!r} took: {duration:2.5f} sec(s)'
+            else:
+                print_string = self.custom_print
+            time_logger.info(print_string.format(*self.args, func_name=self.func_name,
+                                                 args=self.all_args,
+                                                 duration=total,
+                                                 **self.kwargs))
         else:
-            print_string = custom_print
-        time_logger.info(print_string.format(*args, func_name=method.__name__,
-                                             args=all_args,
-                                             duration=te - ts,
-                                             **kw))
-        return result
-
-    return timed
+            if not hasattr(self, 'custom_print'):
+                print_string = 'Code block took: {duration:2.5f} sec(s)'
+            else:
+                print_string = self.custom_print
+            time_logger.info(print_string.format(duration=total))
 
 
 def setup_log(log_path: str = '../logs/default.log', debug: bool = False) -> None:
@@ -135,7 +161,7 @@ def run_mpi(conf: Dict) -> None:
     os.system(cmd)
 
 
-@timeit
+@timeit()
 def main():
     """This is the main function of main.py
 
