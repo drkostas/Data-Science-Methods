@@ -59,10 +59,7 @@ def problem1(conf: Dict) -> None:
 # Call the timeit wrapper from main.py and pass it a custom string to print
 # It already supports string formatting for func_name`, `args`, and `duration`
 # To reference the first positional argument of the function I wrap, I can use {0}
-custom_string = 'Calculation of pi for N={0} took: {duration:2.5f} sec(s) total'
-
-
-@timeit(custom_print=custom_string)
+@timeit(custom_print='Calculation of pi for N={0} took: {duration:2.5f} sec(s) total')
 def py_pi(N: int, real_pi: float) -> None:
     """ Problem 2 function to be called using pool.starmap
 
@@ -101,7 +98,7 @@ def problem2(conf: Dict) -> None:
     real_pi = np.pi
     conf_props = conf['properties']
     # Generate iterable with number of terms to be used
-    # Lambda function that mutiplies each element by 5 in the power of the element's index
+    # Lambda function that multiplies each element by 5 in the power of the element's index
     # e.g. [(10, 0), (10, 1), (10, 2)] -> [10*5^0, 10*5^1, 10*5^2]
     # the first ind_and_num would be (10, 0)
     multiplied_series = lambda ind_and_num: (ind_and_num[1] *
