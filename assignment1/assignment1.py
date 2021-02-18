@@ -35,6 +35,13 @@ def problem1(conf: Dict) -> None:
 
     Parameters:
          conf: The config loaded from the yml file
+            Example:
+                properties:
+                  pool_size: 4
+                  chunk_size: 1
+                  x_min: 0
+                  x_max: 9
+                type: required
     """
 
     p1_logger.info("Starting Problem 1..")
@@ -79,6 +86,15 @@ def problem2(conf: Dict) -> None:
 
     Parameters:
          conf: The config loaded from the yml file
+            Example:
+                properties:
+                  pool_size: 4
+                  chunk_size: 1
+                  num_terms_min: 10
+                  num_terms_step: 5
+                  num_terms_max: 3906250
+                type: required
+
     """
 
     p2_logger.info("Starting Problem 2..")
@@ -130,6 +146,18 @@ def problem3(conf: Dict) -> None:
 
     Parameters:
          conf: The config loaded from the yml file
+            Example:
+                properties:
+                  pool_size: 4
+                  chunk_size: 1
+                  num_terms:
+                    - 100
+                    - 500
+                    - 1000
+                    - 2000
+                    - 10000
+                    - 50000
+                type: required
     """
 
     p3_logger.info("Starting Problem 3..")
