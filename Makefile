@@ -51,7 +51,7 @@ help:
 	@echo "make help"
 	@echo "       Display this message"
 	@echo "make install [server=<prod|circleci|local>]"
-	@echo "       Call clean delete_conda_env create_conda_env setup run_tests"
+	@echo "       Call delete_env create_env setup run_tests"
 	@echo "make clean [server=<prod|circleci|local>]"
 	@echo "       Delete all './build ./dist ./*.pyc ./*.tgz ./*.egg-info' files"
 	@echo "make delete_env [server=<prod|circleci|local>]"
@@ -64,7 +64,7 @@ help:
 	@echo "       Run all the tests from the specified folder"
 	@echo "-----------------------------------------------------------------------------------------------------------"
 install:
-	$(MAKE) clean
+	# $(MAKE) clean
 	$(MAKE) delete_env
 	$(MAKE) create_env
 	$(MAKE) setup
