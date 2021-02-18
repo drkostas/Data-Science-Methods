@@ -26,7 +26,7 @@ else ifeq ($(server),local)
 	BIN=$(BASE)/bin
 	CLEAN_COMMAND="conda env remove -p $(BASE)"
 	CREATE_COMMAND="conda create --prefix $(BASE) python=$(PYTHON_VERSION) -y"
-#	SETUP_FLAG='--local' # If you want to use this, you change it in setup.py too
+	SETUP_FLAG='--local' # If you want to use this, you change it in setup.py too
 	DEBUG=True
 else
 	# Use Conda
@@ -34,7 +34,7 @@ else
 	BIN=$(BASE)/bin
 	CLEAN_COMMAND="conda env remove -p $(BASE)"
 	CREATE_COMMAND="conda create --prefix $(BASE) python=$(PYTHON_VERSION) -y"
-#	SETUP_FLAG='--local' # If you want to use this, you change it in setup.py too
+	SETUP_FLAG='--local' # If you want to use this, you change it in setup.py too
 	DEBUG=True
 endif
 

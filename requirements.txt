@@ -3,5 +3,4 @@ PyYAML~=5.4.1
 termcolor~=1.1.0
 typer~=0.3.2
 setuptools~=52.0.0
-mpi4py~=3.0.3
 numpy~=1.19.2
