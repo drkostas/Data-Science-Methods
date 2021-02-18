@@ -17,6 +17,7 @@ main_logger = ColorizedLog(logging.getLogger('Main'), 'yellow')
 p1_logger = ColorizedLog(logging.getLogger('Problem1'), 'blue')
 p2_logger = ColorizedLog(logging.getLogger('Problem2'), 'green')
 p3_logger = ColorizedLog(logging.getLogger('Problem3'), 'magenta')
+extra_ch_logger = ColorizedLog(logging.getLogger('Extra Challenges'), 'cyan')
 
 
 def my_pid(x: int) -> None:
@@ -41,7 +42,7 @@ def problem1(conf: Dict) -> None:
                   chunk_size: 1
                   x_min: 0
                   x_max: 9
-                type: required
+                conf_type: required
     """
 
     p1_logger.info("Starting Problem 1..")
@@ -90,7 +91,7 @@ def problem2(conf: Dict) -> None:
                   num_terms_min: 10
                   num_terms_step: 5
                   num_terms_max: 3906250
-                type: required
+                conf_type: required
 
     """
 
@@ -154,7 +155,7 @@ def problem3(conf: Dict) -> None:
                     - 2000
                     - 10000
                     - 50000
-                type: required
+                conf_type: required
     """
 
     p3_logger.info("Starting Problem 3..")
@@ -182,6 +183,27 @@ def problem3(conf: Dict) -> None:
                                          chunksize=conf_props['chunk_size'])
 
 
+def extra_challenges(conf: Dict) -> None:
+    """ Extra Challenges solution
+
+    Parameters:
+         conf: The config loaded from the yml file
+            Example:
+                properties:
+                  pool_size: 4
+                  chunk_size: 1
+                  num_terms:
+                    - 100
+                    - 500
+                    - 1000
+                    - 2000
+                    - 10000
+                    - 50000
+                conf_type: optional
+    """
+    extra_ch_logger.info("Starting the Extra Challenges..")
+
+
 @timeit()
 def main():
     """ This is the main function of assignment.py
@@ -199,15 +221,23 @@ def main():
     # Load the configuration
     conf = Configuration(config_src=args.config_file)
     # Start the problems defined in the configuration
+    check_required = lambda conf_type, tag: (conf_type == 'required' or tag != 'required_only')
     if 'problem1' in conf.config_keys:
         for bench_conf in conf.get_config(config_name='problem1'):
-            problem1(bench_conf)
+            if check_required(bench_conf['type'], conf.tag):
+                problem1(bench_conf)
     if 'problem2' in conf.config_keys:
         for bench_conf in conf.get_config(config_name='problem2'):
-            problem2(bench_conf)
+            if check_required(bench_conf['type'], conf.tag):
+                problem2(bench_conf)
     if 'problem3' in conf.config_keys:
         for bench_conf in conf.get_config(config_name='problem3'):
-            problem3(bench_conf)
+            if check_required(bench_conf['type'], conf.tag):
+                problem3(bench_conf)
+    if 'extra_challenges' in conf.config_keys:
+        for bench_conf in conf.get_config(config_name='extra_challenges'):
+            if check_required(bench_conf['type'], conf.tag):
+                extra_challenges(bench_conf)
 
 
 if __name__ == '__main__':

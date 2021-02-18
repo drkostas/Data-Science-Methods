@@ -1,4 +1,4 @@
-tag: dev
+tag: all
 problem1:
   - properties:
       pool_size: 4
@@ -26,3 +26,15 @@ problem3:
         - 10000
         - 50000
     type: required
+extra_challenges:
+  - properties:
+      pool_size: 4
+      chunk_size: 1
+      num_terms:
+        - 100
+        - 500
+        - 1000
+        - 2000
+        - 10000
+        - 50000
+    type: optional
