@@ -3,7 +3,7 @@ import traceback
 import os
 from typing import Dict
 from math import ceil
-from itertools import repeat
+from itertools import repeat, takewhile
 
 import multiprocessing
 import numpy as np
@@ -53,6 +53,8 @@ def problem1(conf: Dict) -> None:
 # It already supports string formatting for func_name`, `args`, and `duration`
 # To reference the first positional argument of the function I wrap, I can use {0}
 custom_string = 'Calculation of pi for N={0} took: {duration:2.5f} sec(s) total'
+
+
 @timeit(custom_print=custom_string)
 def py_pi(N: int, real_pi: float) -> None:
     """ Problem 2 function to be called using pool.starmap
@@ -83,15 +85,18 @@ def problem2(conf: Dict) -> None:
     real_pi = np.pi
     conf_props = conf['properties']
     # Generate iterable with number of terms to be used
-    num_terms_range = []
-    current_num_term = conf_props["num_terms_min"]
-    while current_num_term < conf_props["num_terms_max"]:
-        # Start from `num_terms_min` and multiply by `num_terms_step` until you exceed `num_terms_max`
-        # Append all those numbers to a list
-        num_terms_range.append(current_num_term)
-        current_num_term *= conf_props["num_terms_step"]
+    # Lambda function that mutiplies each element by 5 in the power of the element's index
+    # e.g. [(10, 0), (10, 1), (10, 2)] -> [10*5^0, 10*5^1, 10*5^2]
+    # the first ind_and_num would be (10, 0)
+    multiplied_series = lambda ind_and_num: (ind_and_num[1] *
+                                             (conf_props["num_terms_step"] ** (ind_and_num[0])))
+    # Map an infinite enumerated iterable of (index, 10) to the lambda function
+    # Stop when the series exceeds 3906250
+    num_terms_range = takewhile(lambda series_el: series_el <= conf_props["num_terms_max"],
+                                map(multiplied_series, enumerate(repeat(conf_props["num_terms_min"]))))
     # Create the iterable of arguments to be passed to py_pi using pool.starmap()
-    # repeat() just the same `real_pi` value as many times as necessary to zip it with num_terms_range
+    # repeat() propagates the same `real_pi` value as many times as necessary
+    # to zip it with num_terms_range
     args = zip(num_terms_range, repeat(real_pi))
     # Call py_pi() using pool.starmap() (starmap accepts iterable with multiple arguments)
     with multiprocessing.Pool(processes=conf_props['pool_size']) as pool:
@@ -147,9 +152,9 @@ def problem3(conf: Dict) -> None:
                             '{duration:2.5f} sec(s) total'
             with timeit(custom_print=custom_string):
                 # https://docs.python.org/3/library/multiprocessing.html#multiprocessing.pool.Pool.map
-                pool.starmap(func=py_pi_better,
-                             iterable=args,
-                             chunksize=conf_props['chunk_size'])
+                calced_pi = pool.starmap(func=py_pi_better,
+                                         iterable=args,
+                                         chunksize=conf_props['chunk_size'])
 
 
 @timeit()
