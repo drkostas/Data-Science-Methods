@@ -17,7 +17,7 @@ main_logger = ColorizedLog(logging.getLogger('Main'), 'yellow')
 p1_logger = ColorizedLog(logging.getLogger('Problem1'), 'blue')
 p2_logger = ColorizedLog(logging.getLogger('Problem2'), 'green')
 p3_logger = ColorizedLog(logging.getLogger('Problem3'), 'magenta')
-extra_ch_logger = ColorizedLog(logging.getLogger('Extra'), 'yellow')
+extra_ch_logger = ColorizedLog(logging.getLogger('ExtraMain'), 'yellow')
 extra_sub_ch_logger = ColorizedLog(logging.getLogger('ExtraSub'), 'cyan')
 
 
@@ -50,6 +50,7 @@ def problem1(conf: Dict) -> None:
     conf_props = conf['properties']
     # Generate iterable from `x_min` to `x_max`
     xs = range(conf_props["x_min"], conf_props["x_max"] + 1)
+    p1_logger.info(f"Will call `my_pid` for x in {tuple(xs)}")
     # Call my_pid() using pool.map()
     with multiprocessing.Pool(processes=conf_props['pool_size']) as pool:
         # https://docs.python.org/3/library/multiprocessing.html#multiprocessing.pool.Pool.map
@@ -61,7 +62,7 @@ def problem1(conf: Dict) -> None:
 # Call the timeit wrapper from main.py and pass it a custom string to print
 # It already supports string formatting for func_name`, `args`, and `duration`
 # To reference the first positional argument of the function I wrap, I can use {0}
-@timeit(custom_print='Calculation of pi for N={0} took: {duration:2.5f} sec(s) total')
+@timeit(custom_print='N={0}: Calculation of pi took: {duration:2.5f} sec(s) total')
 def py_pi(N: int, real_pi: float) -> None:
     """ Problem 2 function to be called using pool.starmap
 
@@ -77,7 +78,7 @@ def py_pi(N: int, real_pi: float) -> None:
     calced_pi = first_term * second_term
     # Calculate the absolute difference between the calculated pi and real value of pi
     pi_diff = abs(real_pi - calced_pi)
-    p2_logger.info(f"Pi({N}) = {calced_pi} (Real is {real_pi}, difference is {pi_diff})")
+    p2_logger.info(f"N={N}: Pi({N}) = {calced_pi} (Real is {real_pi}, difference is {pi_diff})")
 
 
 def problem2(conf: Dict) -> None:
@@ -109,10 +110,12 @@ def problem2(conf: Dict) -> None:
     # Stop when the series exceeds 3906250
     num_terms_range = takewhile(lambda series_el: series_el <= conf_props["num_terms_max"],
                                 map(multiplied_series, enumerate(repeat(conf_props["num_terms_min"]))))
+    num_terms_range = tuple(num_terms_range)  # I only do this because I want to print them
     # Create the iterable of arguments to be passed to py_pi using pool.starmap()
     # repeat() propagates the same `real_pi` value as many times as necessary
     # to zip it with num_terms_range
     args = zip(num_terms_range, repeat(real_pi))
+    p2_logger.info(f"Will call `py_pi` for N in {tuple(num_terms_range)}")
     # Call py_pi() using pool.starmap() (starmap accepts iterable with multiple arguments)
     with multiprocessing.Pool(processes=conf_props['pool_size']) as pool:
         # https://docs.python.org/3/library/multiprocessing.html#multiprocessing.pool.Pool.map
@@ -161,9 +164,9 @@ def problem3(conf: Dict) -> None:
 
     p3_logger.info("Starting Problem 3..")
     conf_props = conf['properties']
+    p3_logger.info(f"Will call `py_pi_better` for N in {tuple(conf_props['num_terms'])}")
     # Run the pi calculation once for each number of terms requested in the yml
     for num_term in conf_props["num_terms"]:
-        p3_logger.info(f"Calling workers for N={num_term}")
         # Split the work of `num_terms` into `pool_size` number of parts
         step = ceil(num_term / conf_props["pool_size"])
         i_start = range(1, num_term, step)
@@ -174,7 +177,7 @@ def problem3(conf: Dict) -> None:
         with multiprocessing.Pool(processes=conf_props['pool_size']) as pool:
             # timeit can be used as a context manager too. Pass it a custom string and count the
             # total time to calculate pi
-            custom_string = f'Parallel calculation of pi for N={num_term} took: ' + \
+            custom_string = f'N={num_term}: Parallel calculation of pi took: ' + \
                             '{duration:2.5f} sec(s) total'
             with timeit(custom_print=custom_string):
                 # https://docs.python.org/3/library/multiprocessing.html#multiprocessing.pool.Pool.map
@@ -184,7 +187,8 @@ def problem3(conf: Dict) -> None:
                 calced_pi = sum(pi_chunks)
         real_pi = np.pi
         pi_diff = abs(real_pi - calced_pi)
-        p2_logger.info(f"Pi({num_term}) = {calced_pi} (Real is {real_pi}, difference is {pi_diff})")
+        p3_logger.info(f"N={num_term}: Pi({num_term}) = {calced_pi} (Real is {real_pi}, "
+                       f"difference is {pi_diff})")
 
 
 def extra_1(conf_props: Dict):
@@ -205,6 +209,8 @@ def extra_1(conf_props: Dict):
     """
 
     num_term = int(conf_props["num_term"])
+    extra_ch_logger.info("Will call `py_pi_better` for pool_size in "
+                         f"{tuple(conf_props['pool_sizes'])}")
     for pool_size in conf_props["pool_sizes"]:
         pool_size = int(pool_size)
         # Slightly modified code from problem 3
@@ -255,6 +261,9 @@ def extra_2(conf_props: Dict):
     """
 
     num_term = int(conf_props["num_term"])
+
+    extra_ch_logger.info("Will call `py_pi_better_with_queue` for pool_size in "
+                         f"{tuple(conf_props['pool_sizes'])}")
     for pool_size in conf_props["pool_sizes"]:
         pool_size = int(pool_size)
         # Create a multiprocessing manager and a Queue
@@ -282,6 +291,7 @@ def extra_2(conf_props: Dict):
                                  f"(Real is {real_pi}, difference is {pi_diff})")
         pool.close()
         pool.join()
+
 
 def extra_challenges(conf: Dict) -> None:
     """ Extra Challenges solution
