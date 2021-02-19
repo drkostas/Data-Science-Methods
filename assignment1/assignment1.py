@@ -1,7 +1,7 @@
 import logging
 import traceback
 import os
-from typing import Dict
+from typing import Dict, List
 from math import ceil
 from itertools import repeat, takewhile
 
@@ -19,6 +19,11 @@ p2_logger = ColorizedLog(logging.getLogger('Problem2'), 'green')
 p3_logger = ColorizedLog(logging.getLogger('Problem3'), 'magenta')
 extra_ch_logger = ColorizedLog(logging.getLogger('ExtraMain'), 'yellow')
 extra_sub_ch_logger = ColorizedLog(logging.getLogger('ExtraSub'), 'cyan')
+
+
+# Global Vars (For the Extra Challenges)
+# lock: multiprocessing.Lock
+# multi_list: List = []
 
 
 def my_pid(x: int) -> None:
@@ -203,9 +208,8 @@ def extra_1(conf_props: Dict):
                   - 8
                   - 16
                   - 32
-                  - 64
                 chunk_size: 1
-                num_term: 500000
+                num_term: 8000000
     """
 
     num_term = int(conf_props["num_term"])
@@ -258,6 +262,13 @@ def extra_2(conf_props: Dict):
     Parameters:
          conf_props: The config loaded from the yml file
             Example:
+                pool_sizes:
+                  - 2
+                  - 4
+                  - 8
+                  - 16
+                  - 32
+                num_term: 8000000
     """
 
     num_term = int(conf_props["num_term"])
@@ -293,19 +304,105 @@ def extra_2(conf_props: Dict):
         pool.join()
 
 
+def init(_lock, _multi_list):
+    global lock
+    global multi_list
+    lock = _lock
+    multi_list = _multi_list
+
+
+def py_pi_better_with_list(N: int, i_start: int, i_stop: int) -> None:
+    """ Extra Challenge 2 function to be called using pool.call_async
+
+    Parameters:
+        N: Number of terms to be used to calculate pi
+        i_start: The starting index of the sum used in pi's approximation
+        i_stop: The ending index of the sum used in pi's approximation
+    """
+
+    # Construct the equation
+    first_term = (4 / N)
+    list_to_be_summed = [1 / (1 + ((i - 0.5) / N) ** 2) for i in range(i_start, i_stop + 1)]
+    second_term = sum(list_to_be_summed)
+    cacled_pi = first_term * second_term
+    lock.acquire()
+    multi_list.append(cacled_pi)
+    lock.release()
+
+
+def extra_3(conf_props: Dict):
+    """ Extra Challenge 3 solution
+
+    Parameters:
+         conf_props: The config loaded from the yml file
+    """
+
+    num_term = int(conf_props["num_term"])
+
+    extra_ch_logger.info("Will call `py_pi_better_with_list` for pool_size in "
+                         f"{tuple(conf_props['pool_sizes'])}")
+    for pool_size in conf_props["pool_sizes"]:
+        pool_size = int(pool_size)
+        # Create a multiprocessing manager and a Queue
+        manager = multiprocessing.Manager()
+        multi_list = manager.list()
+        _lock = multiprocessing.Lock()
+        # Slightly modified code from problem 3
+        extra_sub_ch_logger.info(f"Pool Size={pool_size}: Calling Async workers for N={num_term}")
+        step = ceil(num_term / pool_size)
+        i_start = range(1, num_term, step)
+        i_stop = map(lambda el: el + step - 1 if el + step - 1 <= num_term else num_term, i_start)
+        args = zip(repeat(num_term), i_start, i_stop)
+        # Setup manually a Pool
+        custom_string = f'Pool Size={pool_size}: Calculation of pi for N={num_term} and  ' + \
+                        'took: {duration:2.5f} sec(s) total'
+        with timeit(custom_print=custom_string):
+            pool = multiprocessing.Pool(initializer=init, initargs=(_lock, multi_list),
+                                        processes=pool_size)
+            pool.starmap_async(func=py_pi_better_with_queue, iterable=args)
+            pi_chunks = []
+            while len(multi_list) < pool_size:
+                pi_chunks = multi_list
+            calced_pi = sum(pi_chunks)
+        real_pi = np.pi
+        pi_diff = abs(real_pi - calced_pi)
+        extra_sub_ch_logger.info(f"Pool Size={pool_size}: Pi({num_term}) = {calced_pi}"
+                                 f"(Real is {real_pi}, difference is {pi_diff})")
+        pool.close()
+        pool.join()
+
+
+
+
 def extra_challenges(conf: Dict) -> None:
     """ Extra Challenges solution
 
     Parameters:
          conf: The config loaded from the yml file
-            Example:
+            Example: Examples of each sub-config in each problem's function
     """
 
     extra_ch_logger.info("Starting the Extra Challenges..")
-    extra_ch_logger.info("1: Test performance for different pool sizes.")
-    extra_1(conf['properties']["ch1"])
-    extra_ch_logger.info("2: Collect results from workers using a queue (using starmap_async).")
-    extra_2(conf['properties']["ch2"])
+    # Run all the extra challenge that have the property enabled: True
+    if conf['properties']["ch1"]["enabled"]:
+        extra_ch_logger.info("1: Test performance for different pool sizes.")
+        extra_1(conf['properties']["ch1"])
+    if conf['properties']["ch2"]["enabled"]:
+        extra_ch_logger.info("2: Collect results from workers using multiprocessing list "
+                             "(using starmap_async).")
+        extra_2(conf['properties']["ch2"])
+    if conf['properties']["ch3"]["enabled"]:
+        extra_ch_logger.info("3: Collect results from workers using a pythonic list "
+                             "(using starmap_async and Lock()).")
+        extra_3(conf['properties']["ch3"])
+    else:
+        extra_ch_logger.info("3: Collect results from workers using a pythonic list "
+                            "(using starmap_async and Lock()).")
+        extra_ch_logger.info("For this and the 4th problem, I managed to create a Lock() and share it")
+        extra_ch_logger.info("with the workers by creating an initializer function for the Pool().")
+        extra_ch_logger.info("The problem was that when I did the same with the multiprocessing "
+                             "List() or Array(), ")
+        extra_ch_logger.info("I wasn't able to access them from the function that spawned them.")
 
 
 @timeit()

@@ -29,6 +29,7 @@ problem3:
 extra_challenges:
   - properties:
       ch1:
+        enabled: True
         pool_sizes:
           - 2
           - 4
@@ -38,6 +39,16 @@ extra_challenges:
         chunk_size: 1
         num_term: 8000000
       ch2:
+        enabled: True
+        pool_sizes:
+          - 2
+          - 4
+          - 8
+          - 16
+          - 32
+        num_term: 8000000
+      ch3:
+        enabled: False
         pool_sizes:
           - 2
           - 4
