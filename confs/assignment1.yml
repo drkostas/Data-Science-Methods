@@ -28,13 +28,21 @@ problem3:
     type: required
 extra_challenges:
   - properties:
-      pool_size: 4
-      chunk_size: 1
-      num_terms:
-        - 100
-        - 500
-        - 1000
-        - 2000
-        - 10000
-        - 50000
+      ch1:
+        pool_sizes:
+          - 2
+          - 4
+          - 8
+          - 16
+          - 32
+        chunk_size: 1
+        num_term: 8000000
+      ch2:
+        pool_sizes:
+          - 2
+          - 4
+          - 8
+          - 16
+          - 32
+        num_term: 8000000
     type: optional

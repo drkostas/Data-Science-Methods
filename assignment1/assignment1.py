@@ -17,7 +17,8 @@ main_logger = ColorizedLog(logging.getLogger('Main'), 'yellow')
 p1_logger = ColorizedLog(logging.getLogger('Problem1'), 'blue')
 p2_logger = ColorizedLog(logging.getLogger('Problem2'), 'green')
 p3_logger = ColorizedLog(logging.getLogger('Problem3'), 'magenta')
-extra_ch_logger = ColorizedLog(logging.getLogger('Extra Challenges'), 'cyan')
+extra_ch_logger = ColorizedLog(logging.getLogger('Extra'), 'yellow')
+extra_sub_ch_logger = ColorizedLog(logging.getLogger('ExtraSub'), 'cyan')
 
 
 def my_pid(x: int) -> None:
@@ -166,22 +167,121 @@ def problem3(conf: Dict) -> None:
         # Split the work of `num_terms` into `pool_size` number of parts
         step = ceil(num_term / conf_props["pool_size"])
         i_start = range(1, num_term, step)
-        i_stop = map(lambda el: el + step - 1 if el + step - 1 <= num_term else num_term,
-                     i_start)
+        i_stop = map(lambda el: el + step - 1 if el + step - 1 <= num_term else num_term, i_start)
         # Zip N with the i_start and i_stop iterables. Propagate the same N value using repeat
         args = zip(repeat(num_term), i_start, i_stop)
         # Call py_pi_better() using pool.starmap() (starmap accepts iterable with multiple arguments)
         with multiprocessing.Pool(processes=conf_props['pool_size']) as pool:
             # timeit can be used as a context manager too. Pass it a custom string and count the
             # total time to calculate pi
-            custom_string = f'Calculation of pi for N={num_term} took: ' + \
+            custom_string = f'Parallel calculation of pi for N={num_term} took: ' + \
                             '{duration:2.5f} sec(s) total'
             with timeit(custom_print=custom_string):
                 # https://docs.python.org/3/library/multiprocessing.html#multiprocessing.pool.Pool.map
-                calced_pi = pool.starmap(func=py_pi_better,
+                pi_chunks = pool.starmap(func=py_pi_better,
                                          iterable=args,
                                          chunksize=conf_props['chunk_size'])
+                calced_pi = sum(pi_chunks)
+        real_pi = np.pi
+        pi_diff = abs(real_pi - calced_pi)
+        p2_logger.info(f"Pi({num_term}) = {calced_pi} (Real is {real_pi}, difference is {pi_diff})")
 
+
+def extra_1(conf_props: Dict):
+    """ Extra Challenge 1 solution
+
+    Parameters:
+         conf_props: The config loaded from the yml file
+            Example:
+                pool_sizes:
+                  - 2
+                  - 4
+                  - 8
+                  - 16
+                  - 32
+                  - 64
+                chunk_size: 1
+                num_term: 500000
+    """
+
+    num_term = int(conf_props["num_term"])
+    for pool_size in conf_props["pool_sizes"]:
+        pool_size = int(pool_size)
+        # Slightly modified code from problem 3
+        extra_sub_ch_logger.info(f"Pool Size={pool_size}: Calling workers for N={num_term}")
+        step = ceil(num_term / pool_size)
+        i_start = range(1, num_term, step)
+        i_stop = map(lambda el: el + step - 1 if el + step - 1 <= num_term else num_term, i_start)
+        args = zip(repeat(num_term), i_start, i_stop)
+        with multiprocessing.Pool(processes=pool_size) as pool:
+            custom_string = f'Pool Size={pool_size}: Calculation of pi for N={num_term} took: ' + \
+                            '{duration:2.5f} sec(s) total'
+            with timeit(custom_print=custom_string):
+                pi_chunks = pool.starmap(func=py_pi_better,
+                                         iterable=args,
+                                         chunksize=conf_props['chunk_size'])
+                calced_pi = sum(pi_chunks)
+        real_pi = np.pi
+        pi_diff = abs(real_pi - calced_pi)
+        extra_sub_ch_logger.info(f"Pool Size={pool_size}: Pi({num_term}) = {calced_pi} "
+                                 f"(Real is {real_pi}, difference is {pi_diff})")
+
+
+def py_pi_better_with_queue(N: int, i_start: int, i_stop: int,
+                            m_queue: multiprocessing.Queue) -> None:
+    """ Extra Challenge 2 function to be called using pool.call_async
+
+    Parameters:
+        N: Number of terms to be used to calculate pi
+        i_start: The starting index of the sum used in pi's approximation
+        i_stop: The ending index of the sum used in pi's approximation
+        m_queue: A queue in which to append the results
+    """
+
+    # Construct the equation
+    first_term = (4 / N)
+    list_to_be_summed = [1 / (1 + ((i - 0.5) / N) ** 2) for i in range(i_start, i_stop + 1)]
+    second_term = sum(list_to_be_summed)
+    cacled_pi = first_term * second_term
+    m_queue.put(cacled_pi)
+
+
+def extra_2(conf_props: Dict):
+    """ Extra Challenge 2 solution
+
+    Parameters:
+         conf_props: The config loaded from the yml file
+            Example:
+    """
+
+    num_term = int(conf_props["num_term"])
+    for pool_size in conf_props["pool_sizes"]:
+        pool_size = int(pool_size)
+        # Create a multiprocessing manager and a Queue
+        multi_manager = multiprocessing.Manager()
+        multi_queue = multi_manager.Queue()
+        # Slightly modified code from problem 3
+        extra_sub_ch_logger.info(f"Pool Size={pool_size}: Calling Async workers for N={num_term}")
+        step = ceil(num_term / pool_size)
+        i_start = range(1, num_term, step)
+        i_stop = map(lambda el: el + step - 1 if el + step - 1 <= num_term else num_term, i_start)
+        args = zip(repeat(num_term), i_start, i_stop, repeat(multi_queue))
+        # Setup manually a Pool
+        custom_string = f'Pool Size={pool_size}: Calculation of pi for N={num_term} and  ' + \
+                        'took: {duration:2.5f} sec(s) total'
+        with timeit(custom_print=custom_string):
+            pool = multiprocessing.Pool(processes=pool_size)
+            pool.starmap_async(func=py_pi_better_with_queue, iterable=args)
+            pi_chunks = []
+            while len(pi_chunks) < pool_size:
+                pi_chunks.append(multi_queue.get())
+            calced_pi = sum(pi_chunks)
+        real_pi = np.pi
+        pi_diff = abs(real_pi - calced_pi)
+        extra_sub_ch_logger.info(f"Pool Size={pool_size}: Pi({num_term}) = {calced_pi}"
+                                 f"(Real is {real_pi}, difference is {pi_diff})")
+        pool.close()
+        pool.join()
 
 def extra_challenges(conf: Dict) -> None:
     """ Extra Challenges solution
@@ -189,19 +289,13 @@ def extra_challenges(conf: Dict) -> None:
     Parameters:
          conf: The config loaded from the yml file
             Example:
-                properties:
-                  pool_size: 4
-                  chunk_size: 1
-                  num_terms:
-                    - 100
-                    - 500
-                    - 1000
-                    - 2000
-                    - 10000
-                    - 50000
-                conf_type: optional
     """
+
     extra_ch_logger.info("Starting the Extra Challenges..")
+    extra_ch_logger.info("1: Test performance for different pool sizes.")
+    extra_1(conf['properties']["ch1"])
+    extra_ch_logger.info("2: Collect results from workers using a queue (using starmap_async).")
+    extra_2(conf['properties']["ch2"])
 
 
 @timeit()
@@ -218,10 +312,13 @@ def main():
     args = argparser()
     setup_log(args.log, args.debug)
     main_logger.info("Starting Assignment 1")
+    main_logger.info(f"{' Required Problems ':-^{100}}")
     # Load the configuration
     conf = Configuration(config_src=args.config_file)
     # Start the problems defined in the configuration
-    check_required = lambda conf_type, tag: (conf_type == 'required' or tag != 'required_only')
+    check_required = lambda conf_type, tag: ((conf_type == 'required' or tag != 'required_only')
+                                             and conf_type != 'disabled')
+    # For each problem present in the config file, call the appropriate function
     if 'problem1' in conf.config_keys:
         for bench_conf in conf.get_config(config_name='problem1'):
             if check_required(bench_conf['type'], conf.tag):
@@ -234,10 +331,13 @@ def main():
         for bench_conf in conf.get_config(config_name='problem3'):
             if check_required(bench_conf['type'], conf.tag):
                 problem3(bench_conf)
+    # Run the extra challenges if the tag of the conf is not set as "required_only"
+    main_logger.info(f"{' Optional Problems ':-^{100}}")
     if 'extra_challenges' in conf.config_keys:
         for bench_conf in conf.get_config(config_name='extra_challenges'):
             if check_required(bench_conf['type'], conf.tag):
                 extra_challenges(bench_conf)
+    main_logger.info("Assignment 1 Finished")
 
 
 if __name__ == '__main__':
