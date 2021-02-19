@@ -398,6 +398,7 @@ def extra_challenges(conf: Dict) -> None:
     else:
         extra_ch_logger.info("3: Collect results from workers using a pythonic list "
                             "(using starmap_async and Lock()).")
+        extra_ch_logger.info("Last progress report:")
         extra_ch_logger.info("For this and the 4th problem, I managed to create a Lock() and share it")
         extra_ch_logger.info("with the workers by creating an initializer function for the Pool().")
         extra_ch_logger.info("The problem was that when I did the same with the multiprocessing "
