@@ -419,10 +419,10 @@ def main():
     args = argparser()
     setup_log(args.log, args.debug)
     main_logger.info("Starting Assignment 1")
-    main_logger.info(f"{' Required Problems ':-^{100}}")
     # Load the configuration
     conf = Configuration(config_src=args.config_file)
     # Start the problems defined in the configuration
+    main_logger.info(f"{' Required Problems ':-^{100}}")
     check_required = lambda conf_type, tag: ((conf_type == 'required' or tag != 'required_only')
                                              and conf_type != 'disabled')
     # For each problem present in the config file, call the appropriate function
