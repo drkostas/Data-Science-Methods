@@ -55,7 +55,7 @@ def problem1(conf: Dict) -> None:
     conf_props = conf['properties']
     # Generate iterable from `x_min` to `x_max`
     xs = range(conf_props["x_min"], conf_props["x_max"] + 1)
-    p1_logger.info(f"Will call `my_pid` for x in {tuple(xs)}")
+    p1_logger.info(f"Pool Size: {conf_props['pool_size']}: Will call `my_pid` for x in {tuple(xs)}")
     # Call my_pid() using pool.map()
     with multiprocessing.Pool(processes=conf_props['pool_size']) as pool:
         # https://docs.python.org/3/library/multiprocessing.html#multiprocessing.pool.Pool.map
