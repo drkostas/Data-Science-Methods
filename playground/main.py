@@ -114,9 +114,6 @@ def argparser() -> argparse.Namespace:
     required_args.add_argument('-c', '--config-file', **config_file_params)
     # Optional args
     optional_args = parser.add_argument_group('Optional Arguments')
-    # optional_args.add_argument('-m', '--run-mode', choices=['run_mode_1', 'run_mode_2', 'run_mode_3'],
-    #                            default='run_mode_1',
-    #                            help='Description of the run modes')
     optional_args.add_argument('-l', '--log',
                                default='logs/default.log',
                                help="Name of the output log file")
@@ -179,11 +176,13 @@ def main():
     # Start
     if 'bench' in conf.config_keys:
         for bench_conf in conf.get_config(config_name='bench'):
-            run_bench(bench_conf)
+            if bench_conf['enabled']:
+                run_bench(bench_conf)
 
     if 'mpi' in conf.config_keys:
         for mpi_conf in conf.get_config(config_name='mpi'):
-            run_mpi(mpi_conf)
+            if mpi_conf['enabled']:
+                run_mpi(mpi_conf)
 
 
 if __name__ == '__main__':

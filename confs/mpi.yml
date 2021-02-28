@@ -1,8 +1,26 @@
 tag: bench
 mpi:
-#  - config:
-#      nprocs: 2
-#    type: simple
+  - config:
+      nprocs: 4
+    type: simple
+    enabled: false
   - config:
       nprocs: 3
     type: broadcast
+    enabled: false
+  - config:
+      nprocs: 3
+    type: scatter_gather
+    enabled: false
+  - config:
+      nprocs: 3
+    type: all_gather
+    enabled: false
+  - config:
+      nprocs: 3
+    type: mpi_reduce
+    enabled: false
+  - config:
+      nprocs: 3
+    type: mpi_all_reduce
+    enabled: true
