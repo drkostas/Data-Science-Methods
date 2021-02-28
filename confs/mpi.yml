@@ -1,4 +1,4 @@
-tag: bench
+tag: mpi
 mpi:
   - config:
       nprocs: 4

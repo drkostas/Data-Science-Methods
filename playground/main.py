@@ -158,6 +158,33 @@ def run_mpi(conf: Dict) -> None:
     os.system(cmd)
 
 
+def run_kmeans(conf: Dict) -> None:
+    """ Runs the KMeans tests for the specified configuration. """
+
+    config = conf['config']
+    run_type = conf['type']
+    num_clusters = config['num_clusters']
+    logger.info(f"Invoking kmeans.py with type=`{run_type}` and num_clusters=`{num_clusters}`")
+    sys_path = os.path.dirname(os.path.realpath(__file__))
+    run_file_path = os.path.join(sys_path, 'KMeans', 'kmeans.py')
+    if run_type == 'mpi':
+        nprocs = config['nprocs']
+        cmd = 'mpirun -n {nprocs} {python} {file} {num_clusters} {type}'.format(nprocs=nprocs,
+                                                                                python=sys.executable,
+                                                                                file=run_file_path,
+                                                                                type=run_type,
+                                                                                num_clusters=num_clusters)
+
+    elif run_type == 'serial':
+        cmd = '{python} {file} {num_clusters} {type}'.format(python=sys.executable,
+                                                             file=run_file_path,
+                                                             type=run_type,
+                                                             num_clusters=num_clusters)
+    else:
+        raise Exception('Argument not recognized!')
+    os.system(cmd)
+
+
 @timeit()
 def main():
     """This is the main function of main.py
@@ -183,6 +210,11 @@ def main():
         for mpi_conf in conf.get_config(config_name='mpi'):
             if mpi_conf['enabled']:
                 run_mpi(mpi_conf)
+
+    if 'kmeans' in conf.config_keys:
+        for kmeans_conf in conf.get_config(config_name='kmeans'):
+            if kmeans_conf['enabled']:
+                run_kmeans(kmeans_conf)
 
 
 if __name__ == '__main__':

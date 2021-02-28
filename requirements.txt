@@ -4,3 +4,4 @@ termcolor~=1.1.0
 typer~=0.3.2
 setuptools~=52.0.0
 numpy~=1.19.2
+sklearn
