@@ -23,4 +23,8 @@ mpi:
   - config:
       nprocs: 3
     type: mpi_all_reduce
+    enabled: false
+  - config:
+      nprocs: 7
+    type: count_lines
     enabled: true

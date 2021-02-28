@@ -20,7 +20,10 @@ class MPlayI:
         1: 'green',
         2: 'magenta',
         3: 'cyan',
-        4: 'yellow'
+        4: 'yellow',
+        5: 'white',
+        6: 'grey',
+        7: 'black'
     }
 
     def __init__(self):
@@ -36,6 +39,17 @@ class MPlayI:
         sys_path = os.path.dirname(os.path.realpath(__file__))
         log_path = os.path.join(sys_path, '..', '..', 'logs', 'mpi.log')
         setup_log(log_path=log_path)
+
+    @staticmethod
+    def _chunk_list(seq, num):
+        avg = len(seq) / float(num)
+        out = []
+        last = 0.0
+
+        while last < len(seq):
+            out.append(seq[int(last):int(last + avg)])
+            last += avg
+        return out
 
     def simple(self):
         self.logger.info(f"Hello from rank {self.rank} of size {self.size}")
@@ -123,6 +137,28 @@ class MPlayI:
         data = self.comm.allreduce(data)
         self.logger.info(f"Rank {self.rank} after reduce has {data}")
 
+    def count_lines(self):
+        """Count the total lines of files in specified folder"""
+        if self.rank == 0:
+            from glob import glob
+            files_path = os.path.join('data', 'mpi_count_lines', '*.txt')
+            files = list(glob(files_path))
+            files = self._chunk_list(files, self.size)
+        else:
+            files = None
+        files = self.comm.scatter(files, root=0)
+        self.logger.info(f"Rank {self.rank} has to count lines for these files: {files}")
+        lines_cnt = 0
+        for file in files:
+            with open(file, 'r') as f:
+                lines_cnt += sum(1 for _ in f)
+        self.logger.info(f"Rank {self.rank} counted {lines_cnt} lines in total")
+        self.comm.Barrier()
+
+        total_lines_cnt = self.comm.reduce(lines_cnt, root=0)
+        if self.rank == 0:
+            self.logger.info(f"After reduce, counted {total_lines_cnt} lines from all ranks.")
+
 
 if __name__ == '__main__':
     mpi_play = MPlayI()
@@ -138,3 +174,5 @@ if __name__ == '__main__':
         mpi_play.mpi_reduce()
     elif sys.argv[1] == 'mpi_all_reduce':
         mpi_play.mpi_all_reduce()
+    elif sys.argv[1] == 'count_lines':
+        mpi_play.count_lines()
