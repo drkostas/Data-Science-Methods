@@ -3,7 +3,6 @@ import os
 import logging
 from typing import Dict
 from mpi4py import MPI
-from sklearn.datasets import load_iris
 import numpy as np
 
 from playground.fancy_log.colorized_log import ColorizedLog
@@ -56,9 +55,84 @@ class KMeansRunner:
             last += avg
         return out
 
-    """Simple k-means implementation for DSE512"""
+    def _run_vectorized(self, features: np.ndarray, num_clusters: int):
+        """Run k-means algorithm to convergence.
 
-    def _run_serial(self, features: np.ndarray, num_clusters: int):
+        This is the Lloyd's algorithm [2] which consists of alternating expectation
+        and maximization steps.
+
+        Args:
+            features: numpy.ndarray: An N-by-d array describing N data points each of
+                dimension d.
+            num_clusters: int: The number of clusters desired.
+        Returns:
+            centroids: numpy.ndarray: A num_clusters-by-d array of cluster centroid
+                positions.
+            assignments: numpy.ndarray: An N-length vector of integers whose values
+                from 0 to num_clusters-1 indicate which cluster each data element
+                belongs to.
+
+        [1] https://en.wikipedia.org/wiki/K-means_clustering
+        [2] https://en.wikipedia.org/wiki/Lloyd%27s_algorithm
+        """
+        N = features.shape[0]  # num sample points
+
+        #
+        # INITIALIZATION PHASE
+        # initialize centroids randomly as distinct elements of features
+        np.random.seed(0)
+        cids = np.random.choice(N, (num_clusters,), replace=False)
+        centroids = features[cids, :]
+        assignments = np.zeros(N, dtype=np.uint8)
+
+        # loop until convergence
+        while True:
+            # Compute distances from sample points to centroids
+            # all  pair-wise _squared_ distances
+            cdists = np.zeros((N, num_clusters))
+            for i in range(N):
+                xi = features[i, :]
+                for c in range(num_clusters):
+                    cc = centroids[c, :]
+
+                    dist = np.sum((xi - cc) ** 2)
+
+                    cdists[i, c] = dist
+
+            # Expectation step: assign clusters
+            num_changed_assignments = 0
+            # claim: we can just do the following:
+            # assignments = np.argmin(cdists, axis=1)
+            for i in range(N):
+                # pick closest cluster
+                cmin = 0
+                mindist = np.inf
+                for c in range(num_clusters):
+                    if cdists[i, c] < mindist:
+                        cmin = c
+                        mindist = cdists[i, c]
+                if assignments[i] != cmin:
+                    num_changed_assignments += 1
+                assignments[i] = cmin
+
+            # Maximization step: Update centroid for each cluster
+            for c in range(num_clusters):
+                newcent = 0
+                clustersize = 0
+                for i in range(N):
+                    if assignments[i] == c:
+                        newcent = newcent + features[i, :]
+                        clustersize += 1
+                newcent = newcent / clustersize
+                centroids[c, :] = newcent
+
+            if num_changed_assignments == 0:
+                break
+
+        # return cluster centroids and assignments
+        return centroids, assignments
+
+    def _run_simple(self, features: np.ndarray, num_clusters: int):
         """Run k-means algorithm to convergence.
 
         Args:
@@ -71,7 +145,7 @@ class KMeansRunner:
 
         #
         # INITIALIZATION PHASE
-        # initialize centroids randomly as distinct elements of xs
+        # initialize centroids randomly as distinct elements of features
         cids = np.random.choice(N, (num_clusters,), replace=False)
         centroids = features[cids, :]
         assignments = np.zeros(N, dtype=np.uint8)
@@ -121,12 +195,17 @@ class KMeansRunner:
         # return cluster centroids and assignments
         return centroids, assignments
 
-    def run(self, num_clusters: int):
+    def run_serial(self, num_clusters: int, type_run: str):
         from sklearn.datasets import load_iris
         features, labels = load_iris(return_X_y=True)
 
         # run k-means
-        centroids, assignments = self._run_serial(features=features, num_clusters=num_clusters)
+        if type_run == 'simple':
+            centroids, assignments = self._run_simple(features=features, num_clusters=num_clusters)
+        elif type_run == 'vectorized':
+            centroids, assignments = self._run_vectorized(features=features, num_clusters=num_clusters)
+        else:
+            raise Exception(f'Argument {type_run} not recognized!')
 
         # print out results
         self.logger.info(f"\nCentroids: {centroids}\nAssignments: {assignments}")
@@ -134,10 +213,10 @@ class KMeansRunner:
 
 if __name__ == '__main__':
     num_clusters = int(sys.argv[1])
-    if sys.argv[2] == 'serial':
+    if sys.argv[2] in ('simple', 'vectorized'):
         kmeans_runner = KMeansRunner(mpi=False)
+        kmeans_runner.run_serial(num_clusters=num_clusters, type_run=sys.argv[2])
     elif sys.argv[2] == 'mpi':
         kmeans_runner = KMeansRunner(mpi=True)
     else:
-        raise Exception('Argument not recognized!')
-    kmeans_runner.run(num_clusters=num_clusters)
+        raise Exception(f'Argument {sys.argv[2]} not recognized!')

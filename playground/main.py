@@ -175,14 +175,16 @@ def run_kmeans(conf: Dict) -> None:
                                                                                 type=run_type,
                                                                                 num_clusters=num_clusters)
 
-    elif run_type == 'serial':
+    elif run_type in ('simple', 'vectorized', 'distributed'):
         cmd = '{python} {file} {num_clusters} {type}'.format(python=sys.executable,
                                                              file=run_file_path,
                                                              type=run_type,
                                                              num_clusters=num_clusters)
     else:
-        raise Exception('Argument not recognized!')
-    os.system(cmd)
+        raise Exception(f'Argument {run_type} not recognized!')
+    with timeit(custom_print=f'Running KMeans {run_type} for {num_clusters} clusters took' +
+                             ' {duration:2.5f} sec(s)'):
+        os.system(cmd)
 
 
 @timeit()

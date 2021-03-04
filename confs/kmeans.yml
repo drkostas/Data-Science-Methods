@@ -2,10 +2,14 @@ tag: kmeans
 kmeans:
   - config:
       num_clusters: 5
-    type: serial
+    type: simple
+    enabled: false
+  - config:
+      num_clusters: 5
+    type: vectorized
     enabled: true
   - config:
       num_clusters: 5
       nprocs: 4
-    type: parallel
+    type: distributed
     enabled: false
