@@ -4,7 +4,7 @@ import logging
 from typing import Dict
 from mpi4py import MPI
 import numpy as np
-from scipy.spatial.distance import sqeuclidean
+# from matplotlib import pyplot as plt
 
 from playground.fancy_log.colorized_log import ColorizedLog
 from playground.main import setup_log
@@ -88,7 +88,7 @@ class KMeansRunner:
         while True:
             # Compute distances from sample points to centroids
             # all  pair-wise _squared_ distances
-            centroid_distances = np.sqrt((np.square(features[:, np.newaxis] - centroids).sum(axis=2)))
+            centroid_distances = np.square(features[:, np.newaxis] - centroids).sum(axis=2)
 
             # Expectation step: assign clusters
             previous_assignments = cluster_assignments
@@ -120,6 +120,7 @@ class KMeansRunner:
         #
         # INITIALIZATION PHASE
         # initialize centroids randomly as distinct elements of features
+        np.random.seed(0)
         cids = np.random.choice(N, (num_clusters,), replace=False)
         centroids = features[cids, :]
         assignments = np.zeros(N, dtype=np.uint8)

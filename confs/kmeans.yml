@@ -3,7 +3,7 @@ kmeans:
   - config:
       num_clusters: 5
     type: simple
-    enabled: false
+    enabled: true
   - config:
       num_clusters: 5
     type: vectorized
