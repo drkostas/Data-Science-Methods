@@ -4,6 +4,7 @@ import logging
 from typing import Dict
 from mpi4py import MPI
 import numpy as np
+from scipy.spatial.distance import sqeuclidean
 
 from playground.fancy_log.colorized_log import ColorizedLog
 from playground.main import setup_log
@@ -62,75 +63,48 @@ class KMeansRunner:
         and maximization steps.
 
         Args:
-            features: numpy.ndarray: An N-by-d array describing N data points each of
+            features: numpy.ndarray: An num_features-by-d array describing num_features data points each of
                 dimension d.
             num_clusters: int: The number of clusters desired.
         Returns:
             centroids: numpy.ndarray: A num_clusters-by-d array of cluster centroid
                 positions.
-            assignments: numpy.ndarray: An N-length vector of integers whose values
+            cluster_assignments: numpy.ndarray: An num_features-length vector of integers whose values
                 from 0 to num_clusters-1 indicate which cluster each data element
                 belongs to.
 
         [1] https://en.wikipedia.org/wiki/K-means_clustering
         [2] https://en.wikipedia.org/wiki/Lloyd%27s_algorithm
         """
-        N = features.shape[0]  # num sample points
-
+        num_features = features.shape[0]  # num sample points
         #
         # INITIALIZATION PHASE
         # initialize centroids randomly as distinct elements of features
         np.random.seed(0)
-        cids = np.random.choice(N, (num_clusters,), replace=False)
-        centroids = features[cids, :]
-        assignments = np.zeros(N, dtype=np.uint8)
-
-        # loop until convergence
+        centroid_ids = np.random.choice(num_features, (num_clusters,), replace=False)
+        centroids = features[centroid_ids, :]
+        cluster_assignments = np.zeros(num_features, dtype=np.uint8)
+        # Loop until convergence
         while True:
             # Compute distances from sample points to centroids
             # all  pair-wise _squared_ distances
-            cdists = np.zeros((N, num_clusters))
-            for i in range(N):
-                xi = features[i, :]
-                for c in range(num_clusters):
-                    cc = centroids[c, :]
-
-                    dist = np.sum((xi - cc) ** 2)
-
-                    cdists[i, c] = dist
+            centroid_distances = np.sqrt((np.square(features[:, np.newaxis] - centroids).sum(axis=2)))
 
             # Expectation step: assign clusters
-            num_changed_assignments = 0
-            # claim: we can just do the following:
-            # assignments = np.argmin(cdists, axis=1)
-            for i in range(N):
-                # pick closest cluster
-                cmin = 0
-                mindist = np.inf
-                for c in range(num_clusters):
-                    if cdists[i, c] < mindist:
-                        cmin = c
-                        mindist = cdists[i, c]
-                if assignments[i] != cmin:
-                    num_changed_assignments += 1
-                assignments[i] = cmin
+            previous_assignments = cluster_assignments
+            cluster_assignments = np.argmin(centroid_distances, axis=1)
 
             # Maximization step: Update centroid for each cluster
-            for c in range(num_clusters):
-                newcent = 0
-                clustersize = 0
-                for i in range(N):
-                    if assignments[i] == c:
-                        newcent = newcent + features[i, :]
-                        clustersize += 1
-                newcent = newcent / clustersize
-                centroids[c, :] = newcent
-
-            if num_changed_assignments == 0:
+            for cluster_ind in range(num_clusters):
+                features_of_curr_cluster = features[cluster_assignments == cluster_ind]
+                centroids[cluster_ind, :] = np.mean(features_of_curr_cluster, axis=0)
+            # USE PANDAS TO GROUP BY CLUSTER -> MEAN ???
+            # Break Condition
+            if (cluster_assignments == previous_assignments).all():
                 break
 
-        # return cluster centroids and assignments
-        return centroids, assignments
+        # return cluster centroids and cluster_assignments
+        return centroids, cluster_assignments
 
     def _run_simple(self, features: np.ndarray, num_clusters: int):
         """Run k-means algorithm to convergence.
