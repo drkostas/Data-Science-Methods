@@ -20,10 +20,6 @@ set -x
 
 # what is the host that I was assigned
 hostname
-# how much memory is on this host
-free -h
-# show all the file systems
-df -h -x tmpfs
 # CD to the class lustre project directory
 cd /lustre/haven/proj/UTK0150/$USER/kmeans
 # Run kmeans_vectorized.py
@@ -33,5 +29,3 @@ eval $command
 
 qstat -f $PBS_JOBID
 
-# show PBS environment variables
-env | grep PBS
