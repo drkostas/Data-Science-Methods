@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 #PBS -S /bin/bash
-#PBS -N dse512_assignment2
+#PBS -N drkostas_dse512_assignment2
 #PBS -M kgeorgio@vols.utk.edu
 #PBS -m abe
 #PBS -A ACF-UTK0150
