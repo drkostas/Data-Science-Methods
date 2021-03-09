@@ -1,0 +1,127 @@
+acf-sc100
+              total        used        free      shared  buff/cache   available
+Mem:           125G        1.6G        108G        596M         15G        120G
+Swap:           29G        110M         29G
+Filesystem                                    Size  Used Avail Use% Mounted on
+/dev/mapper/VolGroup-lv_root                   49G  5.9G   43G  12% /
+devtmpfs                                       63G     0   63G   0% /dev
+/dev/sda1                                     976M  139M  771M  16% /boot
+/dev/mapper/VolGroup-lv_var                    49G  2.1G   47G   5% /var
+/dev/mapper/VolGroup-lv_tmp                    48G   53M   46G   1% /tmp
+nfs.nics.utk.edu:/nfs/e                       5.0T  2.9T  1.8T  62% /nics/e
+nfs.nics.utk.edu:/nfs/b                       7.9T  4.0T  3.5T  54% /nics/b
+nfs.nics.utk.edu:/nfs/a                       5.0T  1.7T  3.1T  36% /nics/a
+nfs.nics.utk.edu:/nfs/admin                   985G  372G  563G  40% /nics/admin
+172.17.1.1@o2ib133:172.17.1.2@o2ib133:/haven  2.7P  2.0P  614T  77% /lustre/haven
+Job Id: 4617046.apollo-acf
+    Job_Name = drkostas_dse512_assignment2
+    Job_Owner = kgeorgio@beacon004-mic0
+    job_state = R
+    queue = batch
+    server = apollo-acf
+    Account_Name = ACF-UTK0150
+    Checkpoint = u
+    ctime = Mon Mar  8 19:55:43 2021
+    Error_Path = acf-login8:/lustre/haven/proj/UTK0150/kgeorgio/playground/log
+	s/kmeans_vectorized.e
+    exec_host = acf-sc100/0
+    Hold_Types = n
+    Join_Path = n
+    Keep_Files = n
+    Mail_Points = abe
+    Mail_Users = kgeorgio@vols.utk.edu
+    mtime = Mon Mar  8 19:55:49 2021
+    Output_Path = acf-login8:/lustre/haven/proj/UTK0150/kgeorgio/playground/lo
+	gs/kmeans_vectorized.o
+    Priority = 0
+    qtime = Mon Mar  8 19:55:43 2021
+    Rerunable = True
+    Resource_List.nodes = 1:ppn=1
+    Resource_List.walltime = 00:10:00
+    Resource_List.qos = condo
+    Resource_List.partition = beacon:rho:general
+    Resource_List.vmem = 2048mb
+    Resource_List.naccesspolicy = shared
+    Resource_List.nodect = 1
+    session_id = 23969
+    Shell_Path_List = /bin/bash
+    Variable_List = PBS_O_QUEUE=batch,PBS_O_HOME=/nics/b/home/kgeorgio,
+	PBS_O_LOGNAME=kgeorgio,
+	PBS_O_PATH=/sw/acf/anaconda3/4.4.0/centos7.3_gnu6.3.0/anaconda3-4.4.0
+	/condabin:/sw/cs400_centos7.3_acfsoftware/anaconda3/4.4.0/centos7.3_gn
+	u6.3.0/bin:/sw/cs400_centos7.3_acfsoftware/anaconda3/4.4.0/centos7.3_g
+	nu6.3.0/anaconda3-4.4.0/bin:/nics/b/home/kgeorgio/src/bash:/usr/local/
+	bin:/usr/lib64/qt-3.3/bin:/nics/b/home/kgeorgio/perl5/bin:/sw/cs400_ce
+	ntos7.3_acfsoftware/xalt/0.7.5/centos7.3/bin:/sw/acf/bin:/nics/e/sw/cs
+	400_centos7.3_optsoftware/intel/parallel_studio_xe_2018_update1/impi/2
+	018.1.163/intel64/bin:/nics/e/sw/cs400_centos7.3_optsoftware/intel/par
+	allel_studio_xe_2018_update1/compilers_and_libraries_2018.1.163/linux/
+	bin/intel64:/nics/e/sw/cs400_centos7.3_optsoftware/intel/parallel_stud
+	io_xe_2018_update1/compilers_and_libraries_2018.1.163/linux/mpi/bin64/
+	intel64:/nics/e/sw/cs400_centos7.3_optsoftware/intel/parallel_studio_x
+	e_2018_update1/compilers_and_libraries_2018.1.163/linux/mpi/bin64:/nic
+	s/e/sw/cs400_centos7.3_optsoftware/intel/parallel_studio_xe_2018_updat
+	e1/advisor_2018.1.0.523188/bin64:/nics/e/sw/cs400_centos7.3_optsoftwar
+	e/intel/parallel_studio_xe_2018_update1/inspector_2018.1.0.522981/bin6
+	4:/nics/a/proj/nics/support/bin:/usr/share/Modules/bin:/opt/moab/bin:/
+	usr/local/bin:/bin:/usr/bin:/usr/bin:/usr/local/sbin:/usr/sbin:/nics/b
+	/home/kgeorgio/.local/bin:/nics/b/home/kgeorgio/bin,
+	PBS_O_MAIL=/var/spool/mail/kgeorgio,PBS_O_SHELL=/bin/bash,
+	PBS_O_LANG=en_US.UTF-8,
+	PBS_O_SUBMIT_FILTER=/usr/local/sbin/torque_submitfilter,
+	PBS_O_WORKDIR=/lustre/haven/proj/UTK0150/kgeorgio/playground,
+	PBS_O_HOST=acf-login8.acf.nics.utk.edu,PBS_O_SERVER=apollo-acf
+    euser = kgeorgio
+    egroup = tug2106
+    queue_type = E
+    etime = Mon Mar  8 19:55:43 2021
+    submit_args = assignment2/scheduler.pbs
+    start_time = Mon Mar  8 19:55:49 2021
+    Walltime.Remaining = 597
+    start_count = 1
+    fault_tolerant = False
+    job_radix = 0
+    submit_host = acf-login8.acf.nics.utk.edu
+    init_work_dir = /lustre/haven/proj/UTK0150/kgeorgio/playground
+    request_version = 1
+    req_information.task_count.0 = 1
+    req_information.lprocs.0 = 1
+    req_information.swap.0 = 2097152kb
+    req_information.thread_usage_policy.0 = allowthreads
+    req_information.hostlist.0 = acf-sc100:ppn=1
+    req_information.task_usage.0.task.0.cpu_list = 0
+    req_information.task_usage.0.task.0.mem_list = 0
+    req_information.task_usage.0.task.0.cores = 0
+    req_information.task_usage.0.task.0.threads = 1
+    req_information.task_usage.0.task.0.host = acf-sc100
+    cpuset_string = acf-sc100:0
+    memset_string = acf-sc100:0
+
+PBS_VERSION=TORQUE-6.1.1.1
+PBS_JOBNAME=drkostas_dse512_assignment2
+PBS_ENVIRONMENT=PBS_BATCH
+PBS_O_WORKDIR=/lustre/haven/proj/UTK0150/kgeorgio/playground
+PBS_TASKNUM=1
+PBS_O_HOME=/nics/b/home/kgeorgio
+PBS_WALLTIME=600
+PBS_MOMPORT=15003
+PBS_GPUFILE=/var/spool/torque/aux//4617046.apollo-acfgpu
+PBS_O_QUEUE=batch
+PBS_O_LOGNAME=kgeorgio
+PBS_O_LANG=en_US.UTF-8
+PBS_JOBCOOKIE=0DC5F71D72CD01598088FBB70895BF15
+PBS_NODENUM=0
+PBS_NUM_NODES=1
+PBS_O_SHELL=/bin/bash
+PBS_JOBID=4617046.apollo-acf
+PBS_O_HOST=acf-login8.acf.nics.utk.edu
+PBS_VNODENUM=0
+PBS_QUEUE=batch
+PBS_O_MAIL=/var/spool/mail/kgeorgio
+PBS_O_SUBMIT_FILTER=/usr/local/sbin/torque_submitfilter
+PBS_MICFILE=/var/spool/torque/aux//4617046.apollo-acfmic
+PBS_NP=1
+PBS_O_SERVER=apollo-acf
+PBS_NUM_PPN=1
+PBS_NODEFILE=/var/spool/torque/aux//4617046.apollo-acf
+PBS_O_PATH=/sw/acf/anaconda3/4.4.0/centos7.3_gnu6.3.0/anaconda3-4.4.0/condabin:/sw/cs400_centos7.3_acfsoftware/anaconda3/4.4.0/centos7.3_gnu6.3.0/bin:/sw/cs400_centos7.3_acfsoftware/anaconda3/4.4.0/centos7.3_gnu6.3.0/anaconda3-4.4.0/bin:/nics/b/home/kgeorgio/src/bash:/usr/local/bin:/usr/lib64/qt-3.3/bin:/nics/b/home/kgeorgio/perl5/bin:/sw/cs400_centos7.3_acfsoftware/xalt/0.7.5/centos7.3/bin:/sw/acf/bin:/nics/e/sw/cs400_centos7.3_optsoftware/intel/parallel_studio_xe_2018_update1/impi/2018.1.163/intel64/bin:/nics/e/sw/cs400_centos7.3_optsoftware/intel/parallel_studio_xe_2018_update1/compilers_and_libraries_2018.1.163/linux/bin/intel64:/nics/e/sw/cs400_centos7.3_optsoftware/intel/parallel_studio_xe_2018_update1/compilers_and_libraries_2018.1.163/linux/mpi/bin64/intel64:/nics/e/sw/cs400_centos7.3_optsoftware/intel/parallel_studio_xe_2018_update1/compilers_and_libraries_2018.1.163/linux/mpi/bin64:/nics/e/sw/cs400_centos7.3_optsoftware/intel/parallel_studio_xe_2018_update1/advisor_2018.1.0.523188/bin64:/nics/e/sw/cs400_centos7.3_optsoftware/intel/parallel_studio_xe_2018_update1/inspector_2018.1.0.522981/bin64:/nics/a/proj/nics/support/bin:/usr/share/Modules/bin:/opt/moab/bin:/usr/local/bin:/bin:/usr/bin:/usr/bin:/usr/local/sbin:/usr/sbin:/nics/b/home/kgeorgio/.local/bin:/nics/b/home/kgeorgio/bin
