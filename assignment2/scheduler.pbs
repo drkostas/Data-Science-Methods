@@ -29,7 +29,7 @@ cd /lustre/haven/proj/UTK0150/$USER/kmeans
 # Run kmeans_vectorized.py
 CONDA_BIN="~/anaconda3/envs/dse512_playground/bin/"
 command="${CONDA_BIN}python kmeans_vectorized.py -k 5"
-eval command
+eval $command
 
 qstat -f $PBS_JOBID
 
