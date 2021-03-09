@@ -1,0 +1,35 @@
+#!/bin/bash
+#
+#PBS -S /bin/bash
+#PBS -N dse512_assignment2
+#PBS -M kgeorgio@vols.utk.edu
+#PBS -m abe
+#PBS -A ACF-UTK0150
+#PBS -o /lustre/haven/proj/UTK0150/kgeorgio/playground/logs/kmeans_vectorized.o
+#PBS -e /lustre/haven/proj/UTK0150/kgeorgio/playground/logs/kmeans_vectorized.e
+#PBS -l nodes=1:ppn=1 # ppn=process per node
+#PBS -l walltime=00:10:00
+#PBS -l qos=condo
+
+# Perform some simple commands
+set -x
+
+##
+## FOR YOUR JOBS, REPLACE BELOW WITH YOUR CODE
+##
+
+# what is the host that I was assigned
+hostname
+# how much memory is on this host
+free -h
+# show all the file systems
+df -h -x tmpfs
+# CD to the class lustre project directory
+cd /lustre/haven/proj/UTK0150/$USER/kmeans
+# Run kmeans_vectorized.py
+python kmeans_vectorized.py -k 5
+
+qstat -f $PBS_JOBID
+
+# show PBS environment variables
+env | grep PBS

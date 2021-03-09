@@ -1,0 +1,36 @@
+#!/bin/bash
+#
+#PBS -S /bin/bash
+#PBS -N dse512example
+#PBS -M name@domain.com
+#PBS -m abe
+#PBS -A ACF-UTK0150
+#PBS -o example$PBS_JOBID.o
+#PBS -e example$PBS_JOBID.e
+#PBS -l nodes=1:ppn=1
+#PBS -l walltime=00:10:00
+#PBS -l qos=condo
+
+# Perform some simple commands
+set -x
+
+##
+## FOR YOUR JOBS, REPLACE BELOW WITH YOUR CODE
+##
+
+# what is the host that I was assigned
+hostname
+# how much memory is on this host
+free -h
+# show all the file systems
+df -h -x tmpfs
+# CD to my lustre scratch directory
+cd /lustre/haven/user/$USER
+ls -l
+# CD to the class lustre project directory
+cd /lustre/haven/proj/UTK0150
+
+qstat -f $PBS_JOBID
+
+# show PBS environment variables
+env | grep PBS
