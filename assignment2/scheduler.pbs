@@ -27,7 +27,9 @@ df -h -x tmpfs
 # CD to the class lustre project directory
 cd /lustre/haven/proj/UTK0150/$USER/kmeans
 # Run kmeans_vectorized.py
-python kmeans_vectorized.py -k 5
+CONDA_BIN="~/anaconda3/envs/dse512_playground/bin/"
+command="${CONDA_BIN}python kmeans_vectorized.py -k 5"
+eval command
 
 qstat -f $PBS_JOBID
 
