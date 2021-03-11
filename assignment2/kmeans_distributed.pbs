@@ -20,7 +20,7 @@ set -x
 
 # CD to the class lustre project directory
 cd /lustre/haven/proj/UTK0150/$USER/kmeans
-# Run kmeans_vectorized.py
+# Run kmeans_vectorized_jacob.py
 CONDA_BIN="~/anaconda3/envs/dse512_playground/bin/"
 command="mpirun -n 20 ${CONDA_BIN}python kmeans_distributed.py -k 5"
 eval $command

@@ -1,0 +1,28 @@
+tag: required_only
+simple:
+  - properties:
+      num_clusters: 5
+    type: required
+    enabled: true
+vectorized:
+  - properties:
+      num_clusters: 5
+    type: required
+    enabled: true
+vectorized_jacob:
+  - properties:
+      num_clusters: 5
+    type: required
+    enabled: true
+distributed:
+  - properties:
+      num_clusters: 5
+      nprocs: 4
+    type: required
+    enabled: false
+distributed_jacob:
+  - properties:
+      num_clusters: 5
+      nprocs: 4
+    type: required
+    enabled: false

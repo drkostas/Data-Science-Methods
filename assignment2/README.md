@@ -6,4 +6,4 @@ See [k-means - Wikipedia](https://en.wikipedia.org/wiki/K-means_clustering)
 
 # Usage
 
-Run `kmeans.py`
+Run `assignment2.py`

@@ -4,7 +4,6 @@ import logging
 from typing import Dict
 from mpi4py import MPI
 import numpy as np
-# from matplotlib import pyplot as plt
 
 from playground.fancy_log.colorized_log import ColorizedLog
 from playground.main import setup_log
