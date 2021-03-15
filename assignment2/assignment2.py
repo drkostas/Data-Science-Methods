@@ -59,6 +59,34 @@ def run_vectorized(conf: Dict, jacob_version: bool = False) -> None:
         os.system(cmd)
 
 
+def run_distributed(conf: Dict, jacob_version: bool = False) -> None:
+    """ Runs the KMeans distributed version for the specified configuration. """
+
+    vect_logger.info("KMeans Distributed Jacob's version..") if jacob_version \
+        else vect_logger.info("KMeans Distributed..")
+    conf_props = conf['properties']
+    num_clusters = conf_props['num_clusters']
+    nprocs = conf_props['nprocs']
+    if jacob_version:
+        python_file_name = 'kmeans_distributed_jacob.py'
+    else:
+        python_file_name = 'kmeans_distributed.py'
+    vect_logger.info(f"Invoking {python_file_name} with num_clusters=`{num_clusters}`")
+    sys_path = os.path.dirname(os.path.realpath(__file__))
+    if jacob_version:
+        python_file_name = 'kmeans_distributed_jacob.py'
+    else:
+        python_file_name = 'kmeans_distributed.py'
+    run_file_path = os.path.join(sys_path, python_file_name)
+    cmd = 'mpirun -n {nprocs} {python} {file} -k {num_clusters}'.format(nprocs=nprocs,
+                                                                        python=sys.executable,
+                                                                        file=run_file_path,
+                                                                        num_clusters=num_clusters)
+    with timeit(custom_print=f'Running {python_file_name} for {num_clusters} clusters took' +
+                             ' {duration:2.5f} sec(s)'):
+        os.system(cmd)
+
+
 @timeit()
 def main():
     """ This is the main function of assignment.py
@@ -95,11 +123,11 @@ def main():
     if 'distributed_jacob' in conf.config_keys:
         for bench_conf in conf.get_config(config_name='distributed_jacob'):
             if check_required(bench_conf['type'], bench_conf['enabled'], conf.tag):
-                raise NotImplementedError()  # run_distributed(bench_conf, jacob_version=True)
+                run_distributed(bench_conf, jacob_version=True)
     if 'distributed' in conf.config_keys:
         for bench_conf in conf.get_config(config_name='distributed'):
             if check_required(bench_conf['type'], bench_conf['enabled'], conf.tag):
-                raise NotImplementedError()  # run_distributed(bench_conf)
+                run_distributed(bench_conf)
     main_logger.info("Assignment 2 Finished")
 
 

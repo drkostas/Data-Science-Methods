@@ -155,8 +155,11 @@ def run_mpi(conf: Dict) -> None:
                                                              python=sys.executable,
                                                              file=run_file_path,
                                                              type=type)
-    os.system(cmd)
-
+    try:
+        os.system(cmd)
+    except Exception as e:
+        logging.error(f"Command `{cmd}` failed:")
+        raise e
 
 def run_kmeans(conf: Dict) -> None:
     """ Runs the KMeans tests for the specified configuration. """

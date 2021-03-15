@@ -1,28 +1,28 @@
-tag: required_only
+tag: all  # required_only or all
 simple:
   - properties:
       num_clusters: 5
-    type: required
-    enabled: true
+    type: optional  # required or optional
+    enabled: true  # true or false
 vectorized:
   - properties:
       num_clusters: 5
     type: required
-    enabled: true
+    enabled: false
 vectorized_jacob:
   - properties:
       num_clusters: 5
-    type: required
-    enabled: true
+    type: optional
+    enabled: false
 distributed:
   - properties:
       num_clusters: 5
       nprocs: 4
     type: required
-    enabled: false
+    enabled: true
 distributed_jacob:
   - properties:
       num_clusters: 5
       nprocs: 4
-    type: required
+    type: optional
     enabled: false

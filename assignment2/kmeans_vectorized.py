@@ -33,7 +33,7 @@ class KMeansRunner:
     @staticmethod
     def _kmeans_log_setup():
         sys_path = os.path.dirname(os.path.realpath(__file__))
-        log_path = os.path.join(sys_path, '..', '..', 'logs', 'kmeans.log')
+        log_path = os.path.join(sys_path, '..', 'logs', 'kmeans_internal_vectorized.log')
         setup_log(log_path=log_path)
 
     def _run_vectorized(self, features: np.ndarray, num_clusters: int):
