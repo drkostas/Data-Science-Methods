@@ -5,6 +5,5 @@ typer~=0.3.2
 matplotlib
 numpy~=1.19.2
 sklearn~=0.0
-pandas
-mpi4py~=3.0.3
+pandas~=1.2.3
 scikit-learn~=0.24.1
