@@ -18,6 +18,14 @@ distributed:
   - properties:
       num_clusters: 5
       nprocs: 4
+      dataset: iris
+    type: required
+    enabled: true
+  - properties:
+      num_clusters: 10
+      nprocs: 6
+      dataset: ../data/TCGA-PANCAN-HiSeq-801x20531/data.csv
+#      dataset: ../data/TCGA-PANCAN-HiSeq-801x20531/data_small.csv
     type: required
     enabled: true
 distributed_jacob:

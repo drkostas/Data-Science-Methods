@@ -4,6 +4,7 @@ import logging
 from typing import Dict
 from mpi4py import MPI
 import numpy as np
+import pandas as pd
 
 from playground.fancy_log.colorized_log import ColorizedLog
 from playground.main import setup_log
@@ -78,18 +79,18 @@ class KMeansRunner:
             num_clusters: int: The number of clusters desired
         """
 
-        if self.rank == 0:
-            self.logger.info(f"Started with {self.size} processes.")
-        num_points = features.shape[0]  # num points
-        num_features = features.shape[1]  # num features
-
         # Scatter the points
         if self.rank == 0:
+            self.logger.info(f"Started with {self.size} processes.")
+            num_points = features.shape[0]  # num points
+            num_features = features.shape[1]  # num features
             items_per_split_orig, starting_index_orig = self._chunk_for_scatterv(features, self.size)
             items_per_split = items_per_split_orig * num_features
             starting_index = starting_index_orig * num_features
             features_flat = features.flatten()  # Couldn't find a better way to scatter 2D np arrays
         else:
+            num_points = None
+            num_features = None
             features_flat = None
             # initialize items_per_split, and starting_index on worker processes
             items_per_split = np.zeros(self.size, dtype=np.int)
@@ -99,6 +100,8 @@ class KMeansRunner:
         # Broadcast the number of items per split
         self.comm.Bcast(items_per_split, root=0)
         self.comm.Bcast(items_per_split_orig, root=0)
+        num_points = self.comm.bcast(num_points, root=0)
+        num_features = self.comm.bcast(num_features, root=0)
 
         # Scatter data points-features
         features_chunked_flat = np.zeros(items_per_split[self.rank])
@@ -158,11 +161,25 @@ class KMeansRunner:
         # return cluster centroids and cluster_assignments
         return centroids, cluster_assignments
 
-    def run_distributed(self, num_clusters: int):
-        from sklearn.datasets import load_iris
-        features, labels = load_iris(return_X_y=True)
+    def run_distributed(self, num_clusters: int, dataset: str):
+        if self.rank == 0:
+            if dataset == 'iris':
+                from sklearn.datasets import load_iris
+                features, labels = load_iris(return_X_y=True)
+            else:
+                import pandas as pd
 
+                # the directory contains a labels.csv which we will not need for clustering
+                features_pd = pd.read_csv(dataset)
+                features_pd.drop('Unnamed: 0', axis=1, inplace=True)
+                # self.logger.info(f"Dataset columns: {features_pd.columns}")
+                features = features_pd.to_numpy()
+            self.logger.info(f"Dataset {dataset} loaded. Shape: {features.shape}.\n"
+                             f"First Row: {features[0]}")
+        else:
+            features = None
         # run k-means
+        # return
         centroids, assignments = self._run_distributed(features=features, num_clusters=num_clusters)
 
         # print out results
@@ -176,7 +193,9 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
     parser.add_argument('-k', type=int, required=True, help='Number of clusters')
+    parser.add_argument('-d', type=str, required=False, default='iris', help='Dataset to use')
     args = parser.parse_args()
     num_clusters = int(args.k)
+    dataset = args.d
     kmeans_runner = KMeansRunner()
-    kmeans_runner.run_distributed(num_clusters=num_clusters)
+    kmeans_runner.run_distributed(num_clusters=num_clusters, dataset=dataset)

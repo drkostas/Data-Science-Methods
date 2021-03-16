@@ -131,3 +131,5 @@ dmypy.json
 # PyCharm
 /.idea
 *.tmp
+*.gz
+/TCGA-PANCAN-HiSeq-801x20531

@@ -69,8 +69,10 @@ def run_distributed(conf: Dict, jacob_version: bool = False) -> None:
     nprocs = conf_props['nprocs']
     if jacob_version:
         python_file_name = 'kmeans_distributed_jacob.py'
+        dataset = None
     else:
         python_file_name = 'kmeans_distributed.py'
+        dataset = '-d ' + conf_props['dataset']
     vect_logger.info(f"Invoking {python_file_name} with num_clusters=`{num_clusters}`")
     sys_path = os.path.dirname(os.path.realpath(__file__))
     if jacob_version:
@@ -78,10 +80,12 @@ def run_distributed(conf: Dict, jacob_version: bool = False) -> None:
     else:
         python_file_name = 'kmeans_distributed.py'
     run_file_path = os.path.join(sys_path, python_file_name)
-    cmd = 'mpirun -n {nprocs} {python} {file} -k {num_clusters}'.format(nprocs=nprocs,
-                                                                        python=sys.executable,
-                                                                        file=run_file_path,
-                                                                        num_clusters=num_clusters)
+    cmd = 'mpirun -n {nprocs} {python} {file} ' \
+          '-k {num_clusters} {dataset}'.format(nprocs=nprocs,
+                                                  python=sys.executable,
+                                                  file=run_file_path,
+                                                  num_clusters=num_clusters,
+                                                  dataset=dataset)
     with timeit(custom_print=f'Running {python_file_name} for {num_clusters} clusters took' +
                              ' {duration:2.5f} sec(s)'):
         os.system(cmd)
