@@ -132,4 +132,4 @@ dmypy.json
 /.idea
 *.tmp
 *.gz
-/TCGA-PANCAN-HiSeq-801x20531
+*/TCGA-PANCAN-HiSeq-801x20531
