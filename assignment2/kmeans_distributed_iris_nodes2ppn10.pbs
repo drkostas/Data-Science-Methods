@@ -1,12 +1,12 @@
 #!/bin/bash
 #
 #PBS -S /bin/bash
-#PBS -N drkostas_kmeans_distributed_nodes2ppn10
+#PBS -N drkostas_kmeans_iris_distributed_nodes2ppn10
 #PBS -M default@mail
 #PBS -m abe
 #PBS -A ACF-UTK0150
-#PBS -o /lustre/haven/proj/UTK0150/kgeorgio/playground/logs/kmeans_distributed_nodes2ppn10_$PBS_JOBID.o
-#PBS -e /lustre/haven/proj/UTK0150/kgeorgio/playground/logs/kmeans_distributed_nodes2ppn10_$PBS_JOBID.e
+#PBS -o /lustre/haven/proj/UTK0150/kgeorgio/playground/logs/kmeans_iris_distributed_nodes2ppn10_$PBS_JOBID.o
+#PBS -e /lustre/haven/proj/UTK0150/kgeorgio/playground/logs/kmeans_iris_distributed_nodes2ppn10_$PBS_JOBID.e
 #PBS -l nodes=1:ppn=20 # ppn=process per node
 #PBS -l walltime=00:05:00
 #PBS -l qos=condo
