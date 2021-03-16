@@ -1,6 +1,4 @@
 import os
-import sys
-from pprint import pprint
 import logging
 from typing import Dict, Callable
 from mpi4py import MPI
@@ -18,7 +16,7 @@ class KMeansRunner:
     colors: Dict
     run_func: Callable
 
-    def __init__(self, run_type: str):
+    def __init__(self, run_type: str, log_name: str):
         funcs = {'simple': self._run_simple,
                  'vectorized': self._run_vectorized,
                  'vectorized_jacob': self._run_vectorized_jacob,
@@ -48,16 +46,16 @@ class KMeansRunner:
         if self.size > 8:
             for col_ind in range(8, self.size + 1):
                 self.colors[col_ind] = 'green'
-        self._kmeans_log_setup()
+        self._kmeans_log_setup(log_name=log_name)
         self.logger = ColorizedLog(logging.getLogger(f'KMeans {run_type} Proc({self.rank})'),
                                    self.colors[self.rank])
         if self.rank == 0:
             self.logger.info(f"Started with {self.size} processes.")
 
     @staticmethod
-    def _kmeans_log_setup():
+    def _kmeans_log_setup(log_name):
         sys_path = os.path.dirname(os.path.realpath(__file__))
-        log_path = os.path.join(sys_path, '..', 'logs', 'kmeans_internal_distributed.log')
+        log_path = os.path.join(sys_path, '..', 'logs', log_name)
         setup_log(log_path=log_path, mode='w')
 
     @staticmethod
@@ -445,7 +443,8 @@ class KMeansRunner:
             with timeit(custom_print='First Loop Centroids Update Time: {duration:2.5f} sec(s)',
                         skip=(self.rank != 0 or loop_cnt != 1)):
                 for cluster_ind in range(num_clusters):
-                    features_of_curr_cluster = features_chunked[cluster_assignments_chunked == cluster_ind]
+                    features_of_curr_cluster = features_chunked[
+                        cluster_assignments_chunked == cluster_ind]
                     # Find sum and count of each cluster
                     count_curr_cluster_chunked = features_of_curr_cluster.shape[0]
                     if count_curr_cluster_chunked > 0:
@@ -478,7 +477,10 @@ class KMeansRunner:
         dataset_name = 'tcga' if dataset != 'iris' else dataset
         sys_path = os.path.dirname(os.path.realpath(__file__))
         output_file_name = f'{dataset_name}_{self.run_type}_clust{num_clusters}.txt'
-        output_file_path = os.path.join(sys_path, '..', 'outputs', output_file_name)
+        output_file_path = os.path.join(sys_path, '..', 'outputs')
+        if not os.path.exists(output_file_path):
+            os.makedirs(output_file_path)
+        output_file_path = os.path.join(output_file_path, output_file_name)
         if self.rank == 0:
             if dataset == 'iris':
                 from sklearn.datasets import load_iris
@@ -516,16 +518,19 @@ class KMeansRunner:
 if __name__ == '__main__':
     # Read and Parse arguments
     import argparse
+
     parser = argparse.ArgumentParser()
     parser.add_argument('-k', type=int, required=True, help='Number of clusters')
     parser.add_argument('-d', type=str, required=False, default='iris', help='Dataset to use')
     parser.add_argument('-t', type=str, required=True, help='Type of kmeans to run',
                         choices=['simple', 'vectorized', 'vectorized_jacob', 'distributed',
                                  'distributed_jacob'])
+    parser.add_argument('-l', type=str, required=False, default='kmeans.log', help='Log File Name')
     args = parser.parse_args()
     kmeans_num_clusters = int(args.k)
     kmeans_dataset = args.d
     kmeans_type = args.t
+    log_name = args.l
     # Initialize and run K-Means
-    kmeans_runner = KMeansRunner(run_type=kmeans_type)
+    kmeans_runner = KMeansRunner(run_type=kmeans_type, log_name=log_name)
     kmeans_runner.run(num_clusters=kmeans_num_clusters, dataset=kmeans_dataset)
