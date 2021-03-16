@@ -68,7 +68,11 @@ class timeit(ContextDecorator):
                 print_string = self.custom_print
             if hasattr(self, 'file'):
                 self.file.write(print_string.format(duration=total))
-            time_logger.info(print_string.format(duration=total))
+            if hasattr(self, 'skip'):
+                if not self.skip:
+                    time_logger.info(print_string.format(duration=total))
+            else:
+                time_logger.info(print_string.format(duration=total))
 
 
 def setup_log(log_path: str = '../logs/default.log', debug: bool = False) -> None:

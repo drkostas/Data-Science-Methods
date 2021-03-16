@@ -154,8 +154,7 @@ class KMeansRunner:
         # return cluster centroids and assignments
         return centroids, assignments
 
-    @staticmethod
-    def _run_vectorized_jacob(features: np.ndarray, num_clusters: int):
+    def _run_vectorized_jacob(self, features: np.ndarray, num_clusters: int):
 
         """Run k-means algorithm to convergence.
 
@@ -168,51 +167,60 @@ class KMeansRunner:
         #
         # INITIALIZATION PHASE
         # initialize centroids randomly as distinct elements of xs
-        np.random.seed(0)
-        cids = np.random.choice(N, (num_clusters,), replace=False)
-        centroids = features[cids, :]
-        assignments = np.zeros(N, dtype=np.uint8)
+        with timeit(custom_print='Init Time: {duration:2.5f} sec(s)', skip=self.rank != 0):
+            np.random.seed(0)
+            cids = np.random.choice(N, (num_clusters,), replace=False)
+            centroids = features[cids, :]
+            assignments = np.zeros(N, dtype=np.uint8)
 
         # loop until convergence
+        loop_cnt = 0
         while True:
+            loop_cnt += 1
             # Compute distances from sample points to centroids
             # all  pair-wise _squared_ distances
-            cdists = np.zeros((N, num_clusters))
-            for i in range(N):
-                xi = features[i, :]
-                for c in range(num_clusters):
-                    cc = centroids[c, :]
+            with timeit(custom_print='First Loop Distances Calc Time: {duration:2.5f} sec(s)',
+                        skip=(self.rank != 0 or loop_cnt != 1)):
+                cdists = np.zeros((N, num_clusters))
+                for i in range(N):
+                    xi = features[i, :]
+                    for c in range(num_clusters):
+                        cc = centroids[c, :]
 
-                    dist = np.sum((xi - cc) ** 2)
+                        dist = np.sum((xi - cc) ** 2)
 
-                    cdists[i, c] = dist
+                        cdists[i, c] = dist
 
-            # Expectation step: assign clusters
-            num_changed_assignments = 0
-            # claim: we can just do the following:
-            # assignments = np.argmin(cdists, axis=1)
-            for i in range(N):
-                # pick closest cluster
-                cmin = 0
-                mindist = np.inf
-                for c in range(num_clusters):
-                    if cdists[i, c] < mindist:
-                        cmin = c
-                        mindist = cdists[i, c]
-                if assignments[i] != cmin:
-                    num_changed_assignments += 1
-                assignments[i] = cmin
+            with timeit(custom_print='First Loop Cluster Assignment Time: {duration:2.5f} sec(s)',
+                        skip=(self.rank != 0 or loop_cnt != 1)):
+                # Expectation step: assign clusters
+                num_changed_assignments = 0
+                # claim: we can just do the following:
+                # assignments = np.argmin(cdists, axis=1)
+                for i in range(N):
+                    # pick closest cluster
+                    cmin = 0
+                    mindist = np.inf
+                    for c in range(num_clusters):
+                        if cdists[i, c] < mindist:
+                            cmin = c
+                            mindist = cdists[i, c]
+                    if assignments[i] != cmin:
+                        num_changed_assignments += 1
+                    assignments[i] = cmin
 
             # Maximization step: Update centroid for each cluster
-            for c in range(num_clusters):
-                newcent = 0
-                clustersize = 0
-                for i in range(N):
-                    if assignments[i] == c:
-                        newcent = newcent + features[i, :]
-                        clustersize += 1
-                newcent = newcent / clustersize
-                centroids[c, :] = newcent
+            with timeit(custom_print='First Loop Centroids Update Time: {duration:2.5f} sec(s)',
+                        skip=(self.rank != 0 or loop_cnt != 1)):
+                for c in range(num_clusters):
+                    newcent = 0
+                    clustersize = 0
+                    for i in range(N):
+                        if assignments[i] == c:
+                            newcent = newcent + features[i, :]
+                            clustersize += 1
+                    newcent = newcent / clustersize
+                    centroids[c, :] = newcent
 
             if num_changed_assignments == 0:
                 break
@@ -308,8 +316,7 @@ class KMeansRunner:
         # return cluster centroids and assignments
         return centroids, assignments
 
-    @staticmethod
-    def _run_vectorized(features: np.ndarray, num_clusters: int):
+    def _run_vectorized(self, features: np.ndarray, num_clusters: int):
         """Run k-means algorithm to convergence.
 
             This is the Lloyd's algorithm [2] which consists of alternating expectation
@@ -329,28 +336,37 @@ class KMeansRunner:
             [1] https://en.wikipedia.org/wiki/K-means_clustering
             [2] https://en.wikipedia.org/wiki/Lloyd%27s_algorithm
             """
-        num_features = features.shape[0]  # num sample points
         #
         # INITIALIZATION PHASE
         # initialize centroids randomly as distinct elements of features
-        np.random.seed(0)
-        centroid_ids = np.random.choice(num_features, (num_clusters,), replace=False)
-        centroids = features[centroid_ids, :]
-        cluster_assignments = np.zeros(num_features, dtype=np.uint8)
+        with timeit(custom_print='Init Time: {duration:2.5f} sec(s)', skip=self.rank != 0):
+            num_features = features.shape[0]  # num sample points
+            np.random.seed(0)
+            centroid_ids = np.random.choice(num_features, (num_clusters,), replace=False)
+            centroids = features[centroid_ids, :]
+            cluster_assignments = np.zeros(num_features, dtype=np.uint8)
         # Loop until convergence
+        loop_cnt = 0
         while True:
+            loop_cnt += 1
             # Compute distances from sample points to centroids
             # all  pair-wise _squared_ distances
-            centroid_distances = np.square(features[:, np.newaxis] - centroids).sum(axis=2)
+            with timeit(custom_print='First Loop Distances Calc Time: {duration:2.5f} sec(s)',
+                        skip=(self.rank != 0 or loop_cnt != 1)):
+                centroid_distances = np.square(features[:, np.newaxis] - centroids).sum(axis=2)
 
             # Expectation step: assign clusters
-            previous_assignments = cluster_assignments
-            cluster_assignments = np.argmin(centroid_distances, axis=1)
+            with timeit(custom_print='First Loop Cluster Assignment Time: {duration:2.5f} sec(s)',
+                        skip=(self.rank != 0 or loop_cnt != 1)):
+                previous_assignments = cluster_assignments
+                cluster_assignments = np.argmin(centroid_distances, axis=1)
 
             # Maximization step: Update centroid for each cluster
-            for cluster_ind in range(num_clusters):
-                features_of_curr_cluster = features[cluster_assignments == cluster_ind]
-                centroids[cluster_ind, :] = np.mean(features_of_curr_cluster, axis=0)
+            with timeit(custom_print='First Loop Centroids Update Time: {duration:2.5f} sec(s)',
+                        skip=(self.rank != 0 or loop_cnt != 1)):
+                for cluster_ind in range(num_clusters):
+                    features_of_curr_cluster = features[cluster_assignments == cluster_ind]
+                    centroids[cluster_ind, :] = np.mean(features_of_curr_cluster, axis=0)
             # USE PANDAS TO GROUP BY CLUSTER -> MEAN ???
             # Break Condition
             if (cluster_assignments == previous_assignments).all():
@@ -367,76 +383,86 @@ class KMeansRunner:
             num_clusters: int: The number of clusters desired
         """
 
-        # Scatter the points
-        if self.rank == 0:
-            num_points = features.shape[0]  # num points
-            num_features = features.shape[1]  # num features
-            items_per_split_orig, starting_index_orig = self._chunk_for_scatterv(features, self.size)
-            items_per_split = items_per_split_orig * num_features
-            starting_index = starting_index_orig * num_features
-            features_flat = features.flatten()  # Couldn't find a better way to scatter 2D np arrays
-        else:
-            num_points = None
-            num_features = None
-            features_flat = None
-            # initialize items_per_split, and starting_index on worker processes
-            items_per_split = np.zeros(self.size, dtype=np.int)
-            items_per_split_orig = np.zeros(self.size, dtype=np.int)
-            starting_index = None
+        with timeit(custom_print='Init Time: {duration:2.5f} sec(s)', skip=self.rank != 0):
+            # Scatter the points
+            if self.rank == 0:
+                num_points = features.shape[0]  # num points
+                num_features = features.shape[1]  # num features
+                items_per_split_orig, starting_index_orig = self._chunk_for_scatterv(features,
+                                                                                     self.size)
+                items_per_split = items_per_split_orig * num_features
+                starting_index = starting_index_orig * num_features
+                features_flat = features.flatten()  # Couldn't find better way to scatter 2D np arrays
+            else:
+                num_points = None
+                num_features = None
+                features_flat = None
+                # initialize items_per_split, and starting_index on worker processes
+                items_per_split = np.zeros(self.size, dtype=np.int)
+                items_per_split_orig = np.zeros(self.size, dtype=np.int)
+                starting_index = None
 
-        # Broadcast the number of items per split
-        self.comm.Bcast(items_per_split, root=0)
-        self.comm.Bcast(items_per_split_orig, root=0)
-        num_points = self.comm.bcast(num_points, root=0)
-        num_features = self.comm.bcast(num_features, root=0)
+            # Broadcast the number of items per split
+            self.comm.Bcast(items_per_split, root=0)
+            self.comm.Bcast(items_per_split_orig, root=0)
+            num_points = self.comm.bcast(num_points, root=0)
+            num_features = self.comm.bcast(num_features, root=0)
 
-        # Scatter data points-features
-        features_chunked_flat = np.zeros(items_per_split[self.rank])
-        self.comm.Scatterv([features_flat, items_per_split, starting_index, MPI.DOUBLE],
-                           features_chunked_flat,
-                           root=0)
-        features_chunked = features_chunked_flat.reshape(-1, num_features)
+            # Scatter data points-features
+            features_chunked_flat = np.zeros(items_per_split[self.rank])
+            self.comm.Scatterv([features_flat, items_per_split, starting_index, MPI.DOUBLE],
+                               features_chunked_flat,
+                               root=0)
+            features_chunked = features_chunked_flat.reshape(-1, num_features)
 
-        # Initialize and Broadcast the Centroids
-        if self.rank == 0:
-            np.random.seed(0)
-            centroid_ids = np.random.choice(num_points, size=(num_clusters,), replace=False)
-            centroids = features[centroid_ids, :]
+            # Initialize and Broadcast the Centroids
+            if self.rank == 0:
+                np.random.seed(0)
+                centroid_ids = np.random.choice(num_points, size=(num_clusters,), replace=False)
+                centroids = features[centroid_ids, :]
 
-        else:
-            centroids = np.zeros(num_points)
-        centroids = self.comm.bcast(centroids, root=0)
-        previous_cluster_assignments = np.zeros(num_points, dtype=np.uint8)
+            else:
+                centroids = np.zeros(num_points)
+            centroids = self.comm.bcast(centroids, root=0)
+            previous_cluster_assignments = np.zeros(num_points, dtype=np.uint8)
 
         # Loop until convergence
+        loop_cnt = 0
         while True:
+            loop_cnt += 1
             # Compute all-pairs distances from points to centroids
-            centroid_distances_chunked = np.square(features_chunked[:, np.newaxis] - centroids) \
-                .sum(axis=2)
+            with timeit(custom_print='First Loop Distances Calc Time: {duration:2.5f} sec(s)',
+                        skip=(self.rank != 0 or loop_cnt != 1)):
+                centroid_distances_chunked = np.square(features_chunked[:, np.newaxis] - centroids) \
+                    .sum(axis=2)
 
             # Expectation step: assign clusters
-            cluster_assignments_chunked = np.argmin(centroid_distances_chunked, axis=1)
+            with timeit(custom_print='First Loop Cluster Assignment Time: {duration:2.5f} sec(s)',
+                        skip=(self.rank != 0 or loop_cnt != 1)):
+                cluster_assignments_chunked = np.argmin(centroid_distances_chunked, axis=1)
 
             # Maximization step: Update centroid for each cluster
-            for cluster_ind in range(num_clusters):
-                features_of_curr_cluster = features_chunked[cluster_assignments_chunked == cluster_ind]
-                # Find sum and count of each cluster
-                count_curr_cluster_chunked = features_of_curr_cluster.shape[0]
-                if count_curr_cluster_chunked > 0:
-                    sum_curr_cluster_chunked = np.sum(features_of_curr_cluster, axis=0)
-                else:
-                    sum_curr_cluster_chunked = np.zeros_like(features_chunked[0])
-                # Reduce the internal sums to find total sum
-                sum_curr_cluster = np.zeros_like(sum_curr_cluster_chunked)
-                # Find total sum for this cluster
-                # self.logger.info(f"Chunked cluster sum: {sum_curr_cluster_chunked}")
-                self.comm.Allreduce([sum_curr_cluster_chunked, MPI.DOUBLE],
-                                    [sum_curr_cluster, MPI.DOUBLE],
-                                    op=MPI.SUM)
-                # Find total count for this cluster
-                count_curr_cluster = self.comm.allreduce(count_curr_cluster_chunked, op=MPI.SUM)
-                centroids[cluster_ind, :] = sum_curr_cluster / count_curr_cluster
-            # Alternative: USE PANDAS TO GROUP BY CLUSTER -> MEAN ???
+            with timeit(custom_print='First Loop Centroids Update Time: {duration:2.5f} sec(s)',
+                        skip=(self.rank != 0 or loop_cnt != 1)):
+                for cluster_ind in range(num_clusters):
+                    features_of_curr_cluster = features_chunked[cluster_assignments_chunked == cluster_ind]
+                    # Find sum and count of each cluster
+                    count_curr_cluster_chunked = features_of_curr_cluster.shape[0]
+                    if count_curr_cluster_chunked > 0:
+                        sum_curr_cluster_chunked = np.sum(features_of_curr_cluster, axis=0)
+                    else:
+                        sum_curr_cluster_chunked = np.zeros_like(features_chunked[0])
+                    # Reduce the internal sums to find total sum
+                    sum_curr_cluster = np.zeros_like(sum_curr_cluster_chunked)
+                    # Find total sum for this cluster
+                    # self.logger.info(f"Chunked cluster sum: {sum_curr_cluster_chunked}")
+                    self.comm.Allreduce([sum_curr_cluster_chunked, MPI.DOUBLE],
+                                        [sum_curr_cluster, MPI.DOUBLE],
+                                        op=MPI.SUM)
+                    # Find total count for this cluster
+                    count_curr_cluster = self.comm.allreduce(count_curr_cluster_chunked, op=MPI.SUM)
+                    centroids[cluster_ind, :] = sum_curr_cluster / count_curr_cluster
+                # Alternative: USE PANDAS TO GROUP BY CLUSTER -> MEAN ???
 
             # Break Condition
             # self.comm.Barrier()
@@ -476,6 +502,7 @@ class KMeansRunner:
                 with timeit(custom_print=custom_print, file=f):
                     centroids, assignments = self.run_func(features=features,
                                                            num_clusters=num_clusters)
+                    self.logger.info(f"Final Cluster Assignments: \n{assignments}")
                 # Save results
                 f.write(f'Assignments:\n')
                 f.write(f'{assignments.tolist()}\n')

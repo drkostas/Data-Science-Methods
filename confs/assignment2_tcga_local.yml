@@ -2,28 +2,28 @@ tag: all  # required_only or all
 # Jacob'sSimple K-Means
 simple:
   - properties:
-      num_clusters: 5
+      num_clusters: 10
       dataset: ../data/TCGA-PANCAN-HiSeq-801x20531/data_small.csv
     type: optional  # required or optional
     enabled: false  # true or false
 # Jacob's Vectorized K-Means
 vectorized_jacob:
   - properties:
-      num_clusters: 5
+      num_clusters: 10
       dataset: ../data/TCGA-PANCAN-HiSeq-801x20531/data_small.csv
     type: required
     enabled: true
 # My Vectorized K-Means
 vectorized:
   - properties:
-      num_clusters: 5
+      num_clusters: 10
       dataset: ../data/TCGA-PANCAN-HiSeq-801x20531/data_small.csv
     type: required
     enabled: true
 # Jacob's Distributed K-Means
 distributed_jacob:
   - properties:
-      num_clusters: 5
+      num_clusters: 10
       nprocs: 4
       dataset: ../data/TCGA-PANCAN-HiSeq-801x20531/data_small.csv
     type: optional
@@ -35,4 +35,4 @@ distributed:
       nprocs: 6
       dataset: ../data/TCGA-PANCAN-HiSeq-801x20531/data_small.csv
     type: required
-    enabled: true
+    enabled: false
