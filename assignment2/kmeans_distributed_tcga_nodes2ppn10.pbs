@@ -1,0 +1,29 @@
+#!/bin/bash
+#
+#PBS -S /bin/bash
+#PBS -N drkostas_kmeans_distributed
+#PBS -M kgeorgio@vols.utk.edu
+#PBS -m abe
+#PBS -A ACF-UTK0150
+#PBS -o /lustre/haven/proj/UTK0150/kgeorgio/playground/logs/kmeans_distributed_$PBS_JOBID.o
+#PBS -e /lustre/haven/proj/UTK0150/kgeorgio/playground/logs/kmeans_distributed_$PBS_JOBID.e
+#PBS -l nodes=1:ppn=10 # ppn=process per node
+#PBS -l walltime=00:05:00
+#PBS -l qos=condo
+
+# Perform some simple commands
+set -x
+
+##
+## Job Code
+##
+
+# CD to the class lustre project directory
+cd /lustre/haven/proj/UTK0150/$USER/kmeans
+# Run kmeans_vectorized_jacob.py
+CONDA_BIN="~/anaconda3/envs/dse512_playground/bin/"
+command="mpirun -n 20 ${CONDA_BIN}python kmeans_distributed.py -k 5"
+eval $command
+
+qstat -f $PBS_JOBID
+

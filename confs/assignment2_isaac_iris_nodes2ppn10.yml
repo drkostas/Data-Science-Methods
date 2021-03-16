@@ -1,0 +1,9 @@
+tag: required_only  # required_only or all
+# My Distributed K-Means
+distributed:
+  - properties:
+      num_clusters: 5
+      nprocs: 20
+      dataset: iris
+    type: required  # required or optional
+    enabled: true  # true or false

@@ -58,7 +58,7 @@ class KMeansRunner:
     def _kmeans_log_setup():
         sys_path = os.path.dirname(os.path.realpath(__file__))
         log_path = os.path.join(sys_path, '..', 'logs', 'kmeans_internal_distributed.log')
-        setup_log(log_path=log_path)
+        setup_log(log_path=log_path, mode='w')
 
     @staticmethod
     def _chunk_list(seq, num):
@@ -514,9 +514,8 @@ class KMeansRunner:
 
 
 if __name__ == '__main__':
-    # take arguments like number of clusters k
+    # Read and Parse arguments
     import argparse
-
     parser = argparse.ArgumentParser()
     parser.add_argument('-k', type=int, required=True, help='Number of clusters')
     parser.add_argument('-d', type=str, required=False, default='iris', help='Dataset to use')
@@ -527,5 +526,6 @@ if __name__ == '__main__':
     kmeans_num_clusters = int(args.k)
     kmeans_dataset = args.d
     kmeans_type = args.t
+    # Initialize and run K-Means
     kmeans_runner = KMeansRunner(run_type=kmeans_type)
     kmeans_runner.run(num_clusters=kmeans_num_clusters, dataset=kmeans_dataset)

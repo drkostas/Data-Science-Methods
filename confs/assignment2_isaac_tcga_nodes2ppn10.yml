@@ -1,0 +1,9 @@
+tag: required_only  # required_only or all
+# My Distributed K-Means
+distributed:
+  - properties:
+      num_clusters: 10
+      nprocs: 20
+      dataset: /lustre/haven/proj/UTK0150/data/TCGA-PANCAN-HiSeq-801x20531/data.csv
+    type: required  # required or optional
+    enabled: true  # true or false

@@ -1,0 +1,15 @@
+tag: all  # required_only or all
+# Jacob's Vectorized K-Means
+vectorized_jacob:
+  - properties:
+      num_clusters: 5
+      dataset: iris
+    type: required  # required or optional
+    enabled: true  # true or false
+# My Vectorized K-Means
+vectorized:
+  - properties:
+      num_clusters: 5
+      dataset: iris
+    type: optional
+    enabled: true

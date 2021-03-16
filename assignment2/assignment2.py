@@ -62,7 +62,7 @@ def main():
 
     # Initialize
     args = argparser()
-    setup_log(args.log, args.debug)
+    setup_log(args.log, args.debug, 'w')
     main_logger.info("Starting Assignment 2")
     # Load the configuration
     conf = Configuration(config_src=args.config_file)

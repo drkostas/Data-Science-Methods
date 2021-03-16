@@ -1,0 +1,30 @@
+#!/bin/bash
+#
+#PBS -S /bin/bash
+#PBS -N drkostas_kmeans_vectorized_nodes1ppn1
+#PBS -m abe
+#PBS -A ACF-UTK0150
+#PBS -o /lustre/haven/proj/UTK0150/kgeorgio/playground/logs/kmeans_vectorized_nodes1ppn1_$PBS_JOBID.o
+#PBS -e /lustre/haven/proj/UTK0150/kgeorgio/playground/logs/kmeans_vectorized_nodes1ppn1_$PBS_JOBID.e
+#PBS -l nodes=1:ppn=1 # ppn=process per node
+#PBS -l walltime=00:05:00
+#PBS -l qos=condo
+
+# Perform some simple commands
+set -x
+
+##
+## Job Code
+##
+
+# CD to the class lustre project directory
+cd /lustre/haven/proj/UTK0150/$USER/kmeans
+# Run assignment2.py with the appropriate arguments
+CONDA_BIN="~/anaconda3/envs/dse512_playground/bin/"
+conf="/lustre/haven/proj/UTK0150/${USER}/playground/confs/assignment2_isaac_iris_nodes1ppn1.yml"
+log="/lustre/haven/proj/UTK0150/${USER}/playground/logs/assignment2_isaac_iris_nodes1ppn1.log"
+command="${CONDA_BIN}python assignment2.py -c ${conf} -l ${log}"
+eval $command
+
+qstat -f $PBS_JOBID
+

@@ -75,12 +75,13 @@ class timeit(ContextDecorator):
                 time_logger.info(print_string.format(duration=total))
 
 
-def setup_log(log_path: str = '../logs/default.log', debug: bool = False) -> None:
-    """Set the parameteres of the logger
+def setup_log(log_path: str = '../logs/default.log', debug: bool = False, mode: str = 'a') -> None:
+    """Set the parameters of the logger
 
     Args:
         log_path (str): The path the log file is going to be saved
         debug (bool): Whether to print debug messages or not
+        mode: (str): The write mode
     """
     log_path = log_path.split(os.sep)
     if len(log_path) > 1:
@@ -95,7 +96,7 @@ def setup_log(log_path: str = '../logs/default.log', debug: bool = False) -> Non
                         format='%(asctime)s %(name)-12s %(levelname)-8s %(message)s',
                         datefmt='%Y-%m-%d %H:%M:%S',
                         handlers=[
-                            logging.FileHandler(log_filename),
+                            logging.FileHandler(log_filename, mode=mode),
                             logging.StreamHandler()
                         ]
                         )
@@ -166,6 +167,7 @@ def run_mpi(conf: Dict) -> None:
     except Exception as e:
         logging.error(f"Command `{cmd}` failed:")
         raise e
+
 
 def run_kmeans(conf: Dict) -> None:
     """ Runs the KMeans tests for the specified configuration. """
