@@ -1,0 +1,38 @@
+tag: required_only  # required_only or all
+# Jacob'sSimple K-Means
+simple:
+  - properties:
+      num_clusters: 5
+      dataset: iris
+    type: optional  # required or optional
+    enabled: true  # true or false
+# Jacob's Vectorized K-Means
+vectorized_jacob:
+  - properties:
+      num_clusters: 5
+      dataset: iris
+    type: required
+    enabled: true
+# My Vectorized K-Means
+vectorized:
+  - properties:
+      num_clusters: 5
+      dataset: iris
+    type: required
+    enabled: true
+# Jacob's Distributed K-Means
+distributed_jacob:
+  - properties:
+      num_clusters: 5
+      nprocs: 4
+      dataset: iris
+    type: optional
+    enabled: true
+# My Distributed K-Means
+distributed:
+  - properties:
+      num_clusters: 5
+      nprocs: 4
+      dataset: iris
+    type: required
+    enabled: true

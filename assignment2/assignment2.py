@@ -2,7 +2,7 @@ import logging
 import traceback
 import os
 import sys
-from typing import Dict, List
+from typing import Dict
 
 from playground.main import setup_log, argparser, timeit
 from playground.fancy_log.colorized_log import ColorizedLog
@@ -10,85 +10,44 @@ from playground.configuration.configuration import Configuration
 
 # Create loggers with different colors to use in each problem
 main_logger = ColorizedLog(logging.getLogger('Main'), 'yellow')
-simp_logger = ColorizedLog(logging.getLogger('KMeans Simple'), 'cyan')
-vect_logger = ColorizedLog(logging.getLogger('KMeans Vectorized'), 'blue')
-distr_logger = ColorizedLog(logging.getLogger('KMeans Distributed'), 'green')
 
 
-def run_simple(conf: Dict) -> None:
-    """ Runs the KMeans simple version for the specified configuration. """
-
-    simp_logger.info("KMeans Simple..")
+def prepare_for_run(name: str, conf: Dict):
     conf_props = conf['properties']
     num_clusters = conf_props['num_clusters']
-    simp_logger.info(f"Invoking kmeans simple with num_clusters=`{num_clusters}`")
+    dataset = conf_props['dataset']
+    python_file_name = 'kmeans.py'
+    dataset_name = 'tcga' if dataset != 'iris' else dataset
+    main_logger.info(f"Invoking {python_file_name}({name}) "
+                     f"for {num_clusters} clusters and the {dataset_name} dataset")
+    return python_file_name, num_clusters, dataset, dataset_name
+
+
+def run_serial(name: str, conf: Dict) -> None:
+    """ Runs the KMeans ser9ap version for the specified configuration. """
+
+    # Extract the properties
+    python_file_name, num_clusters, dataset, dataset_name = prepare_for_run(name, conf)
+    # Construct the command
     sys_path = os.path.dirname(os.path.realpath(__file__))
-    run_file_path = os.path.join(sys_path, 'kmeans.py')
-
-    cmd = '{python} {file} -k {num_clusters}'.format(python=sys.executable,
-                                                     file=run_file_path,
-                                                     num_clusters=num_clusters)
-    with timeit(custom_print=f'Running KMeans simple for {num_clusters} clusters took' +
-                             ' {duration:2.5f} sec(s)'):
-        os.system(cmd)
-
-
-def run_vectorized(conf: Dict, jacob_version: bool = False) -> None:
-    """ Runs the KMeans vectorized version for the specified configuration. """
-
-    vect_logger.info("KMeans Vectorized Jacob's version..") if jacob_version \
-        else vect_logger.info("KMeans Vectorized..")
-    conf_props = conf['properties']
-    num_clusters = conf_props['num_clusters']
-    if jacob_version:
-        python_file_name = 'kmeans_vectorized_jacob.py'
-    else:
-        python_file_name = 'kmeans_vectorized.py'
-    vect_logger.info(f"Invoking {python_file_name} with num_clusters=`{num_clusters}`")
-    sys_path = os.path.dirname(os.path.realpath(__file__))
-    if jacob_version:
-        python_file_name = 'kmeans_vectorized_jacob.py'
-    else:
-        python_file_name = 'kmeans_vectorized.py'
     run_file_path = os.path.join(sys_path, python_file_name)
-    cmd = '{python} {file} -k {num_clusters}'.format(python=sys.executable,
-                                                     file=run_file_path,
-                                                     num_clusters=num_clusters)
-    with timeit(custom_print=f'Running {python_file_name} for {num_clusters} clusters took' +
-                             ' {duration:2.5f} sec(s)'):
-        os.system(cmd)
+    cmd = f'{sys.executable} {run_file_path} -k {num_clusters} -d {dataset} -t {name}'
+    # Run
+    os.system(cmd)
 
 
-def run_distributed(conf: Dict, jacob_version: bool = False) -> None:
+def run_distributed(name: str, conf: Dict) -> None:
     """ Runs the KMeans distributed version for the specified configuration. """
 
-    vect_logger.info("KMeans Distributed Jacob's version..") if jacob_version \
-        else vect_logger.info("KMeans Distributed..")
-    conf_props = conf['properties']
-    num_clusters = conf_props['num_clusters']
-    nprocs = conf_props['nprocs']
-    if jacob_version:
-        python_file_name = 'kmeans_distributed_jacob.py'
-        dataset = None
-    else:
-        python_file_name = 'kmeans_distributed.py'
-        dataset = '-d ' + conf_props['dataset']
-    vect_logger.info(f"Invoking {python_file_name} with num_clusters=`{num_clusters}`")
+    python_file_name, num_clusters, dataset, dataset_name = prepare_for_run(name, conf)
+    nprocs = conf['properties']['num_clusters']
+    # Construct the command
     sys_path = os.path.dirname(os.path.realpath(__file__))
-    if jacob_version:
-        python_file_name = 'kmeans_distributed_jacob.py'
-    else:
-        python_file_name = 'kmeans_distributed.py'
     run_file_path = os.path.join(sys_path, python_file_name)
-    cmd = 'mpirun -n {nprocs} {python} {file} ' \
-          '-k {num_clusters} {dataset}'.format(nprocs=nprocs,
-                                                  python=sys.executable,
-                                                  file=run_file_path,
-                                                  num_clusters=num_clusters,
-                                                  dataset=dataset)
-    with timeit(custom_print=f'Running {python_file_name} for {num_clusters} clusters took' +
-                             ' {duration:2.5f} sec(s)'):
-        os.system(cmd)
+    cmd = f'mpirun -n {nprocs} {sys.executable} {run_file_path} -k {num_clusters} ' \
+          f'-d {dataset} -t {name}'
+    # Run
+    os.system(cmd)
 
 
 @timeit()
@@ -108,30 +67,19 @@ def main():
     # Load the configuration
     conf = Configuration(config_src=args.config_file)
     # Start the problems defined in the configuration
-    main_logger.info(f"{' Required Problems ':-^{100}}")
     check_required = lambda conf_type, conf_enabled, tag: \
         ((conf_type == 'required' or tag != 'required_only') and conf_enabled)
     # For each problem present in the config file, call the appropriate function
-    if 'simple' in conf.config_keys:
-        for bench_conf in conf.get_config(config_name='simple'):
-            if check_required(bench_conf['type'], bench_conf['enabled'], conf.tag):
-                run_simple(bench_conf)
-    if 'vectorized_jacob' in conf.config_keys:
-        for bench_conf in conf.get_config(config_name='vectorized'):
-            if check_required(bench_conf['type'], bench_conf['enabled'], conf.tag):
-                run_vectorized(bench_conf, jacob_version=True)
-    if 'vectorized' in conf.config_keys:
-        for bench_conf in conf.get_config(config_name='vectorized'):
-            if check_required(bench_conf['type'], bench_conf['enabled'], conf.tag):
-                run_vectorized(bench_conf)
-    if 'distributed_jacob' in conf.config_keys:
-        for bench_conf in conf.get_config(config_name='distributed_jacob'):
-            if check_required(bench_conf['type'], bench_conf['enabled'], conf.tag):
-                run_distributed(bench_conf, jacob_version=True)
-    if 'distributed' in conf.config_keys:
-        for bench_conf in conf.get_config(config_name='distributed'):
-            if check_required(bench_conf['type'], bench_conf['enabled'], conf.tag):
-                run_distributed(bench_conf)
+    for config_key in conf.config_keys:
+        if 'distributed' in config_key:
+            for bench_conf in conf.get_config(config_name=config_key):
+                if check_required(bench_conf['type'], bench_conf['enabled'], conf.tag):
+                    run_distributed(name=config_key, conf=bench_conf)
+        else:
+            for bench_conf in conf.get_config(config_name=config_key):
+                if check_required(bench_conf['type'], bench_conf['enabled'], conf.tag):
+                    run_serial(name=config_key, conf=bench_conf)
+
     main_logger.info("Assignment 2 Finished")
 
 

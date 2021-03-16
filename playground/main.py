@@ -66,6 +66,8 @@ class timeit(ContextDecorator):
                 print_string = 'Code block took: {duration:2.5f} sec(s)'
             else:
                 print_string = self.custom_print
+            if hasattr(self, 'file'):
+                self.file.write(print_string.format(duration=total))
             time_logger.info(print_string.format(duration=total))
 
 
