@@ -10,6 +10,7 @@ ifeq ($(server),prod)
 	BIN=$(BASE)/bin
 	CLEAN_COMMAND="conda env remove -p $(BASE)"
 	CREATE_COMMAND="conda create --prefix $(BASE) python=$(PYTHON_VERSION) -y"
+	EXTRA_INSTALL="conda install mpi4py==3.0.3 -y"
 	SETUP_FLAG=
 	DEBUG=False
 else ifeq ($(server),circleci)
@@ -18,6 +19,7 @@ else ifeq ($(server),circleci)
 	BIN=$(BASE)/bin
 	CLEAN_COMMAND="rm -rf $(BASE)"
 	CREATE_COMMAND="python$(PYTHON_VERSION) -m venv $(BASE)"
+	EXTRA_INSTALL=
 	SETUP_FLAG=
 	DEBUG=True
 else ifeq ($(server),local)
@@ -26,6 +28,7 @@ else ifeq ($(server),local)
 	BIN=$(BASE)/bin
 	CLEAN_COMMAND="conda env remove -p $(BASE)"
 	CREATE_COMMAND="conda create --prefix $(BASE) python=$(PYTHON_VERSION) -y"
+	EXTRA_INSTALL=
 	SETUP_FLAG='--local' # If you want to use this, you change it in setup.py too
 	DEBUG=True
 else
@@ -34,6 +37,7 @@ else
 	BIN=$(BASE)/bin
 	CLEAN_COMMAND="conda env remove -p $(BASE)"
 	CREATE_COMMAND="conda create --prefix $(BASE) python=$(PYTHON_VERSION) -y"
+	EXTRA_INSTALL=
 	SETUP_FLAG='--local' # If you want to use this, you change it in setup.py too
 	DEBUG=True
 endif
@@ -67,6 +71,7 @@ install:
 	# $(MAKE) clean
 	$(MAKE) delete_env
 	$(MAKE) create_env
+	eval $(EXTRA_INSTALL)
 	$(MAKE) setup
 	$(MAKE) run_tests
 	@echo "Installation Successful!"

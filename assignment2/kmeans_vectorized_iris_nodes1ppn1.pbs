@@ -2,8 +2,8 @@
 #
 #PBS -S /bin/bash
 #PBS -N drkostas_kmeans_vectorized_nodes1ppn1
-#PBS -m abe
 #PBS -M default@mail
+#PBS -m abe
 #PBS -A ACF-UTK0150
 #PBS -o /lustre/haven/proj/UTK0150/kgeorgio/playground/logs/kmeans_vectorized_nodes1ppn1_$PBS_JOBID.o
 #PBS -e /lustre/haven/proj/UTK0150/kgeorgio/playground/logs/kmeans_vectorized_nodes1ppn1_$PBS_JOBID.e

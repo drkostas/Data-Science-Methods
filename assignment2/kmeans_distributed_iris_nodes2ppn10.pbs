@@ -1,13 +1,13 @@
 #!/bin/bash
 #
 #PBS -S /bin/bash
-#PBS -N drkostas_kmeans_distributed
-#PBS -M kgeorgio@vols.utk.edu
+#PBS -N drkostas_kmeans_vectorized_nodes2ppn10
+#PBS -M default@mail
 #PBS -m abe
 #PBS -A ACF-UTK0150
-#PBS -o /lustre/haven/proj/UTK0150/kgeorgio/playground/logs/kmeans_distributed_$PBS_JOBID.o
-#PBS -e /lustre/haven/proj/UTK0150/kgeorgio/playground/logs/kmeans_distributed_$PBS_JOBID.e
-#PBS -l nodes=1:ppn=10 # ppn=process per node
+#PBS -o /lustre/haven/proj/UTK0150/kgeorgio/playground/logs/kmeans_vectorized_nodes2ppn10_$PBS_JOBID.o
+#PBS -e /lustre/haven/proj/UTK0150/kgeorgio/playground/logs/kmeans_vectorized_nodes2ppn10_$PBS_JOBID.e
+#PBS -l nodes=1:ppn=20 # ppn=process per node
 #PBS -l walltime=00:05:00
 #PBS -l qos=condo
 
@@ -19,10 +19,12 @@ set -x
 ##
 
 # CD to the class lustre project directory
-cd /lustre/haven/proj/UTK0150/$USER/kmeans
-# Run kmeans_vectorized_jacob.py
+cd /lustre/haven/proj/UTK0150/$USER/assignment2
+# Run assignment2.py with the appropriate arguments
 CONDA_BIN="~/anaconda3/envs/dse512_playground/bin/"
-command="mpirun -n 20 ${CONDA_BIN}python kmeans_distributed.py -k 5"
+conf="/lustre/haven/proj/UTK0150/${USER}/playground/confs/assignment2_isaac_iris_nodes2ppn10.yml"
+log="/lustre/haven/proj/UTK0150/${USER}/playground/logs/assignment2_isaac_iris_nodes2ppn10.log"
+command="${CONDA_BIN}python assignment2.py -c ${conf} -l ${log}"
 eval $command
 
 qstat -f $PBS_JOBID
