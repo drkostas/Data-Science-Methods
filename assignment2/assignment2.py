@@ -40,7 +40,7 @@ def run_distributed(name: str, conf: Dict, log_name: str) -> None:
     """ Runs the KMeans distributed version for the specified configuration. """
 
     python_file_name, num_clusters, dataset, dataset_name = prepare_for_run(name, conf)
-    nprocs = conf['properties']['num_clusters']
+    nprocs = conf['properties']['nprocs']
     # Construct the command
     sys_path = os.path.dirname(os.path.realpath(__file__))
     run_file_path = os.path.join(sys_path, python_file_name)

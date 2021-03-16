@@ -35,4 +35,4 @@ distributed:
       nprocs: 6
       dataset: ../data/TCGA-PANCAN-HiSeq-801x20531/data_small.csv
     type: required
-    enabled: false
+    enabled: true

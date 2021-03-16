@@ -56,7 +56,7 @@ class KMeansRunner:
     def _kmeans_log_setup(log_name):
         sys_path = os.path.dirname(os.path.realpath(__file__))
         log_path = os.path.join(sys_path, '..', 'logs', log_name)
-        setup_log(log_path=log_path, mode='w')
+        setup_log(log_path=log_path, mode='a')
 
     @staticmethod
     def _chunk_list(seq, num):
@@ -476,7 +476,7 @@ class KMeansRunner:
     def run(self, num_clusters: int, dataset: str):
         dataset_name = 'tcga' if dataset != 'iris' else dataset
         sys_path = os.path.dirname(os.path.realpath(__file__))
-        output_file_name = f'{dataset_name}_{self.run_type}_clust{num_clusters}.txt'
+        output_file_name = f'assignment2_{dataset_name}_{self.run_type}_procs{self.size}.txt'
         output_file_path = os.path.join(sys_path, '..', 'outputs')
         if not os.path.exists(output_file_path):
             os.makedirs(output_file_path)
@@ -499,7 +499,7 @@ class KMeansRunner:
         if self.rank == 0:
             with open(output_file_path, 'w') as f:
                 f.write(f'K-Means {self.run_type} version for the {dataset_name} dataset '
-                        f'with {num_clusters} clusters and {self.size} processe(s).\n')
+                        f'with {num_clusters} clusters and {self.size} process(es).\n')
                 # Run for rank=0
                 with timeit(custom_print=custom_print, file=f):
                     centroids, assignments = self.run_func(features=features,
