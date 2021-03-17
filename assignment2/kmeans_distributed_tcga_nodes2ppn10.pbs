@@ -8,6 +8,7 @@
 #PBS -o /lustre/haven/proj/UTK0150/kgeorgio/playground/logs/kmeans_tcga_distributed_nodes2ppn10_$PBS_JOBID.o
 #PBS -e /lustre/haven/proj/UTK0150/kgeorgio/playground/logs/kmeans_tcga_distributed_nodes2ppn10_$PBS_JOBID.e
 #PBS -l nodes=2:ppn=10 # ppn=process per node
+#PBS -l pmem=4gb # memory per node
 #PBS -l walltime=00:05:00
 #PBS -l qos=condo
 
