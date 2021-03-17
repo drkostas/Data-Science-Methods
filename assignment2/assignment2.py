@@ -40,10 +40,10 @@ def run_distributed(name: str, conf: Dict, log_name: str, local: bool = False) -
     """ Runs the KMeans distributed version for the specified configuration. """
 
     if local:
-        mpi_path = os.path.join('usr', 'bin', 'mpirun')
+        mpi_path = os.path.join('/usr', 'bin', 'mpirun')
     else:
         env_path = f'{os.sep}'.join(sys.executable.split(os.sep)[:-2])
-        mpi_path = os.path.join(env_path, 'bin', 'mpirun')
+        mpi_path = os.path.sep + os.path.join(env_path, 'bin', 'mpirun')
     python_file_name, num_clusters, dataset, dataset_name = prepare_for_run(name, conf)
     nprocs = conf['properties']['nprocs']
     # Construct the command

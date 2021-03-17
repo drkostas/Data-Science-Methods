@@ -6,6 +6,7 @@ import numpy as np
 
 from playground.fancy_log.colorized_log import ColorizedLog
 from playground.main import setup_log, timeit
+from datetime import datetime
 
 
 class KMeansRunner:
@@ -157,19 +158,19 @@ class KMeansRunner:
         """Run k-means algorithm to convergence.
 
         Args:
-            features: numpy.ndarray: An N-by-d array describing N data points each of dimension d
+            features: numpy.ndarray: An num_points-by-d array describing num_points data points each of dimension d
             num_clusters: int: The number of clusters desired
         """
-        N = features.shape[0]  # num sample points
+        num_points = features.shape[0]  # num sample points
 
         #
         # INITIALIZATION PHASE
         # initialize centroids randomly as distinct elements of xs
         with timeit(custom_print='Init Time: {duration:2.5f} sec(s)', skip=self.rank != 0):
             np.random.seed(0)
-            cids = np.random.choice(N, (num_clusters,), replace=False)
+            cids = np.random.choice(num_points, (num_clusters,), replace=False)
             centroids = features[cids, :]
-            assignments = np.zeros(N, dtype=np.uint8)
+            assignments = np.zeros(num_points, dtype=np.uint8)
 
         # loop until convergence
         loop_cnt = 0
@@ -179,30 +180,30 @@ class KMeansRunner:
             # all  pair-wise _squared_ distances
             with timeit(custom_print='First Loop Distances Calc Time: {duration:2.5f} sec(s)',
                         skip=(self.rank != 0 or loop_cnt != 1)):
-                cdists = np.zeros((N, num_clusters))
-                for i in range(N):
+                centroid_distances = np.zeros((num_points, num_clusters))
+                for i in range(num_points):
                     xi = features[i, :]
                     for c in range(num_clusters):
                         cc = centroids[c, :]
 
                         dist = np.sum((xi - cc) ** 2)
 
-                        cdists[i, c] = dist
+                        centroid_distances[i, c] = dist
 
             with timeit(custom_print='First Loop Cluster Assignment Time: {duration:2.5f} sec(s)',
                         skip=(self.rank != 0 or loop_cnt != 1)):
                 # Expectation step: assign clusters
                 num_changed_assignments = 0
                 # claim: we can just do the following:
-                # assignments = np.argmin(cdists, axis=1)
-                for i in range(N):
+                # assignments = np.argmin(centroid_distances, axis=1)
+                for i in range(num_points):
                     # pick closest cluster
                     cmin = 0
                     mindist = np.inf
                     for c in range(num_clusters):
-                        if cdists[i, c] < mindist:
+                        if centroid_distances[i, c] < mindist:
                             cmin = c
-                            mindist = cdists[i, c]
+                            mindist = centroid_distances[i, c]
                     if assignments[i] != cmin:
                         num_changed_assignments += 1
                     assignments[i] = cmin
@@ -213,7 +214,7 @@ class KMeansRunner:
                 for c in range(num_clusters):
                     newcent = 0
                     clustersize = 0
-                    for i in range(N):
+                    for i in range(num_points):
                         if assignments[i] == c:
                             newcent = newcent + features[i, :]
                             clustersize += 1
@@ -321,13 +322,13 @@ class KMeansRunner:
             and maximization steps.
 
             Args:
-                features: numpy.ndarray: An num_features-by-d array describing num_features data points each of
+                features: numpy.ndarray: An num_points-by-d array describing num_points data points each of
                     dimension d.
                 num_clusters: int: The number of clusters desired.
             Returns:
                 centroids: numpy.ndarray: A num_clusters-by-d array of cluster centroid
                     positions.
-                cluster_assignments: numpy.ndarray: An num_features-length vector of integers whose values
+                cluster_assignments: numpy.ndarray: An num_points-length vector of integers whose values
                     from 0 to num_clusters-1 indicate which cluster each data element
                     belongs to.
 
@@ -337,21 +338,24 @@ class KMeansRunner:
         #
         # INITIALIZATION PHASE
         # initialize centroids randomly as distinct elements of features
+
+        from scipy.spatial.distance import cdist
+
         with timeit(custom_print='Init Time: {duration:2.5f} sec(s)', skip=self.rank != 0):
-            num_features = features.shape[0]  # num sample points
+            num_points = features.shape[0]  # num sample points
             np.random.seed(0)
-            centroid_ids = np.random.choice(num_features, (num_clusters,), replace=False)
+            centroid_ids = np.random.choice(num_points, (num_clusters,), replace=False)
             centroids = features[centroid_ids, :]
-            cluster_assignments = np.zeros(num_features, dtype=np.uint8)
+            cluster_assignments = np.zeros(num_points, dtype=np.uint8)
         # Loop until convergence
         loop_cnt = 0
         while True:
             loop_cnt += 1
             # Compute distances from sample points to centroids
             # all  pair-wise _squared_ distances
-            with timeit(custom_print='First Loop Distances Calc Time: {duration:2.5f} sec(s)',
+            with timeit(custom_print='2 First Loop Distances Calc Time: {duration:2.5f} sec(s)',
                         skip=(self.rank != 0 or loop_cnt != 1)):
-                centroid_distances = np.square(features[:, np.newaxis] - centroids).sum(axis=2)
+                centroid_distances = np.square(cdist(features, centroids, 'euclidean'))
 
             # Expectation step: assign clusters
             with timeit(custom_print='First Loop Cluster Assignment Time: {duration:2.5f} sec(s)',
@@ -375,25 +379,26 @@ class KMeansRunner:
 
     def _run_distributed(self, features: np.ndarray, num_clusters: int):
         """Run k-means algorithm to convergence.
-    
+
         Args:
             features: numpy.ndarray: An N-by-d array describing N data points each of dimension d
             num_clusters: int: The number of clusters desired
         """
+        from scipy.spatial.distance import cdist
 
         with timeit(custom_print='Init Time: {duration:2.5f} sec(s)', skip=self.rank != 0):
             # Scatter the points
             if self.rank == 0:
                 num_points = features.shape[0]  # num points
-                num_features = features.shape[1]  # num features
+                num_points = features.shape[1]  # num features
                 items_per_split_orig, starting_index_orig = self._chunk_for_scatterv(features,
                                                                                      self.size)
-                items_per_split = items_per_split_orig * num_features
-                starting_index = starting_index_orig * num_features
+                items_per_split = items_per_split_orig * num_points
+                starting_index = starting_index_orig * num_points
                 features_flat = features.flatten()  # Couldn't find better way to scatter 2D np arrays
             else:
                 num_points = None
-                num_features = None
+                num_points = None
                 features_flat = None
                 # initialize items_per_split, and starting_index on worker processes
                 items_per_split = np.zeros(self.size, dtype=np.int)
@@ -404,14 +409,14 @@ class KMeansRunner:
             self.comm.Bcast(items_per_split, root=0)
             self.comm.Bcast(items_per_split_orig, root=0)
             num_points = self.comm.bcast(num_points, root=0)
-            num_features = self.comm.bcast(num_features, root=0)
+            num_points = self.comm.bcast(num_points, root=0)
 
             # Scatter data points-features
             features_chunked_flat = np.zeros(items_per_split[self.rank])
             self.comm.Scatterv([features_flat, items_per_split, starting_index, MPI.DOUBLE],
                                features_chunked_flat,
                                root=0)
-            features_chunked = features_chunked_flat.reshape(-1, num_features)
+            features_chunked = features_chunked_flat.reshape(-1, num_points)
 
             # Initialize and Broadcast the Centroids
             if self.rank == 0:
@@ -433,6 +438,7 @@ class KMeansRunner:
                         skip=(self.rank != 0 or loop_cnt != 1)):
                 centroid_distances_chunked = np.square(features_chunked[:, np.newaxis] - centroids) \
                     .sum(axis=2)
+                centroid_distances_chunked = np.square(cdist(features_chunked, centroids, 'euclidean'))
 
             # Expectation step: assign clusters
             with timeit(custom_print='First Loop Cluster Assignment Time: {duration:2.5f} sec(s)',
@@ -474,6 +480,20 @@ class KMeansRunner:
         return centroids, cluster_assignments
 
     def run(self, num_clusters: int, dataset: str):
+        """
+
+        Args:
+            num_clusters: The number of clusters to find
+            dataset: The name or path of the dataset
+
+        Returns:
+
+        Info:
+            features shape: (# points, # features)
+            centroids shape: (# clusters, # features)
+            centroid_distances shape: (# points, # clusters)
+        """
+
         dataset_name = 'tcga' if dataset != 'iris' else dataset
         sys_path = os.path.dirname(os.path.realpath(__file__))
         output_file_name = f'assignment2_{dataset_name}_{self.run_type}_procs{self.size}.txt'
