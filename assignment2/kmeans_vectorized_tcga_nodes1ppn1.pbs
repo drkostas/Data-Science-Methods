@@ -12,7 +12,7 @@
 #PBS -l walltime=00:05:00
 #PBS -l qos=condo
 
-# Perform some simple commands
+# Print commands and their arguments in a sequential order
 set -x
 
 ##

@@ -36,11 +36,14 @@ def run_serial(name: str, conf: Dict, log_name: str) -> None:
     os.system(cmd)
 
 
-def run_distributed(name: str, conf: Dict, log_name: str) -> None:
+def run_distributed(name: str, conf: Dict, log_name: str, local: bool = False) -> None:
     """ Runs the KMeans distributed version for the specified configuration. """
 
-    env_path = f'{os.sep}'.join(sys.executable.split(os.sep)[:-2])
-    mpi_path = os.path.join(env_path, 'bin', 'mpirun')
+    if local:
+        mpi_path = os.path.join('usr', 'bin', 'mpirun')
+    else:
+        env_path = f'{os.sep}'.join(sys.executable.split(os.sep)[:-2])
+        mpi_path = os.path.join(env_path, 'bin', 'mpirun')
     python_file_name, num_clusters, dataset, dataset_name = prepare_for_run(name, conf)
     nprocs = conf['properties']['nprocs']
     # Construct the command
@@ -76,7 +79,8 @@ def main():
         if 'distributed' in config_key:
             for bench_conf in conf.get_config(config_name=config_key):
                 if check_required(bench_conf['type'], bench_conf['enabled'], conf.tag):
-                    run_distributed(name=config_key, conf=bench_conf, log_name=args.log)
+                    run_distributed(name=config_key, conf=bench_conf, log_name=args.log,
+                                    local=args.local)
         else:
             for bench_conf in conf.get_config(config_name=config_key):
                 if check_required(bench_conf['type'], bench_conf['enabled'], conf.tag):

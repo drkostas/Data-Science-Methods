@@ -126,6 +126,8 @@ def argparser() -> argparse.Namespace:
                                help="Name of the output log file")
     optional_args.add_argument('-d', '--debug', action='store_true',
                                help='Enables the debug log messages')
+    optional_args.add_argument('--local', action='store_true',
+                               help='Specifies that the script is running locally')
     optional_args.add_argument("-h", "--help", action="help", help="Show this help message and exit")
 
     return parser.parse_args()
