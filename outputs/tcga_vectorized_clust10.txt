@@ -1,2 +1,0 @@
-K-Means vectorized version for the tcga dataset with 10 clusters and 1 processe(s).
-Total Time: 0.56528 sec(s)
