@@ -6,11 +6,11 @@ PYTHON_VERSION=3.8
 # You can use either venv (virtualenv) or conda env by specifying the correct argument (server=<prod, circleci, local>)
 ifeq ($(server),prod)
 	# Use Conda
-	BASE=~/anaconda3/envs/dse512_playground
+	BASE=/nics/b/home/kgeorgio/.conda/envs/dse512_playground
 	BIN=$(BASE)/bin
 	CLEAN_COMMAND="conda env remove -p $(BASE)"
 	CREATE_COMMAND="conda create --prefix $(BASE) python=$(PYTHON_VERSION) -y"
-	EXTRA_INSTALL="conda install mpi4py==3.0.3 -y"
+	EXTRA_INSTALL="conda install --prefix $(BASE) mpi4py==3.0.3 -y"
 	SETUP_FLAG=
 	DEBUG=False
 else ifeq ($(server),circleci)
