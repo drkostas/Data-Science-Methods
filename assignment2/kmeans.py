@@ -390,15 +390,15 @@ class KMeansRunner:
             # Scatter the points
             if self.rank == 0:
                 num_points = features.shape[0]  # num points
-                num_points = features.shape[1]  # num features
+                num_features = features.shape[1]  # num features
                 items_per_split_orig, starting_index_orig = self._chunk_for_scatterv(features,
                                                                                      self.size)
-                items_per_split = items_per_split_orig * num_points
-                starting_index = starting_index_orig * num_points
+                items_per_split = items_per_split_orig * num_features
+                starting_index = starting_index_orig * num_features
                 features_flat = features.flatten()  # Couldn't find better way to scatter 2D np arrays
             else:
                 num_points = None
-                num_points = None
+                num_features = None
                 features_flat = None
                 # initialize items_per_split, and starting_index on worker processes
                 items_per_split = np.zeros(self.size, dtype=np.int)
@@ -409,14 +409,14 @@ class KMeansRunner:
             self.comm.Bcast(items_per_split, root=0)
             self.comm.Bcast(items_per_split_orig, root=0)
             num_points = self.comm.bcast(num_points, root=0)
-            num_points = self.comm.bcast(num_points, root=0)
+            num_features = self.comm.bcast(num_features, root=0)
 
             # Scatter data points-features
             features_chunked_flat = np.zeros(items_per_split[self.rank])
             self.comm.Scatterv([features_flat, items_per_split, starting_index, MPI.DOUBLE],
                                features_chunked_flat,
                                root=0)
-            features_chunked = features_chunked_flat.reshape(-1, num_points)
+            features_chunked = features_chunked_flat.reshape(-1, num_features)
 
             # Initialize and Broadcast the Centroids
             if self.rank == 0:
