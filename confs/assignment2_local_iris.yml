@@ -12,14 +12,14 @@ vectorized_jacob:
       num_clusters: 5
       dataset: iris
     type: required
-    enabled: true
+    enabled: false
 # My Vectorized K-Means
 vectorized:
   - properties:
       num_clusters: 5
       dataset: iris
     type: optional
-    enabled: true
+    enabled: false
 # Jacob's Distributed K-Means
 distributed_jacob:
   - properties:
@@ -35,4 +35,4 @@ distributed:
       nprocs: 4
       dataset: iris
     type: required
-    enabled: false
+    enabled: true

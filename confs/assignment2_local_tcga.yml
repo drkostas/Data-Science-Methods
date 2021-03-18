@@ -12,14 +12,14 @@ vectorized:
       num_clusters: 10
       dataset: ../data/TCGA-PANCAN-HiSeq-801x20531/data_small.csv
     type: required
-    enabled: true
+    enabled: false
 # Jacob's Vectorized K-Means
 vectorized_jacob:
   - properties:
       num_clusters: 10
       dataset: ../data/TCGA-PANCAN-HiSeq-801x20531/data_small.csv
     type: required
-    enabled: true
+    enabled: false
 # Jacob's Distributed K-Means
 distributed_jacob:
   - properties:
@@ -35,4 +35,4 @@ distributed:
       nprocs: 6
       dataset: ../data/TCGA-PANCAN-HiSeq-801x20531/data_small.csv
     type: required
-    enabled: false
+    enabled: true
