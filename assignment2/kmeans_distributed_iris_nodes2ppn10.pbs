@@ -21,7 +21,7 @@ set -x
 # CD to the class lustre project directory
 cd /lustre/haven/proj/UTK0150/$USER/assignment2
 # Run assignment2.py with the appropriate arguments
-CONDA_BIN="~/anaconda3/envs/dse512_playground/bin/"
+CONDA_BIN="/nics/b/home/kgeorgio/.conda/envs/dse512_playground/bin/"
 conf="/lustre/haven/proj/UTK0150/${USER}/playground/confs/assignment2_isaac_iris_nodes2ppn10.yml"
 log="/lustre/haven/proj/UTK0150/${USER}/playground/logs/assignment2_isaac_iris_nodes2ppn10.log"
 command="${CONDA_BIN}python assignment2.py -c ${conf} -l ${log}"
