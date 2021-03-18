@@ -1,0 +1,88 @@
+Job Id: 4639147.apollo-acf
+    Job_Name = drkostas_kmeans_iris_distributed_nodes2ppn10
+    Job_Owner = kgeorgio@beacon004-mic0
+    job_state = R
+    queue = batch
+    server = apollo-acf
+    Account_Name = ACF-UTK0150
+    Checkpoint = u
+    ctime = Wed Mar 17 22:21:11 2021
+    Error_Path = acf-login8:/lustre/haven/proj/UTK0150/kgeorgio/playground/log
+	s/kmeans_iris_distributed_nodes2ppn10_$PBS_JOBID.e
+    exec_host = acf-sc100/0-19
+    Hold_Types = n
+    Join_Path = n
+    Keep_Files = n
+    Mail_Points = abe
+    Mail_Users = default@mail
+    mtime = Wed Mar 17 22:21:48 2021
+    Output_Path = acf-login8:/lustre/haven/proj/UTK0150/kgeorgio/playground/lo
+	gs/kmeans_iris_distributed_nodes2ppn10_$PBS_JOBID.o
+    Priority = 0
+    qtime = Wed Mar 17 22:21:11 2021
+    Rerunable = True
+    Resource_List.nodes = 1:ppn=20
+    Resource_List.walltime = 00:05:00
+    Resource_List.qos = condo
+    Resource_List.partition = beacon:rho:general
+    Resource_List.vmem = 81920mb
+    Resource_List.naccesspolicy = shared
+    Resource_List.nodect = 1
+    session_id = 12466
+    Shell_Path_List = /bin/bash
+    Variable_List = PBS_O_QUEUE=batch,PBS_O_HOME=/nics/b/home/kgeorgio,
+	PBS_O_LOGNAME=kgeorgio,
+	PBS_O_PATH=/nics/b/home/kgeorgio/src/bash:/usr/local/bin:/usr/share/M
+	odules/bin:/opt/moab/bin:/sw/acf/anaconda3/4.4.0/centos7.3_gnu6.3.0/an
+	aconda3-4.4.0/condabin:/sw/cs400_centos7.3_acfsoftware/anaconda3/4.4.0
+	/centos7.3_gnu6.3.0/bin:/sw/cs400_centos7.3_acfsoftware/anaconda3/4.4.
+	0/centos7.3_gnu6.3.0/anaconda3-4.4.0/bin:/nics/b/home/kgeorgio/src/bas
+	h:/usr/local/bin:/usr/lib64/qt-3.3/bin:/nics/b/home/kgeorgio/perl5/bin
+	:/sw/cs400_centos7.3_acfsoftware/xalt/0.7.5/centos7.3/bin:/sw/acf/bin:
+	/nics/e/sw/cs400_centos7.3_optsoftware/intel/parallel_studio_xe_2018_u
+	pdate1/impi/2018.1.163/intel64/bin:/nics/e/sw/cs400_centos7.3_optsoftw
+	are/intel/parallel_studio_xe_2018_update1/compilers_and_libraries_2018
+	.1.163/linux/bin/intel64:/nics/e/sw/cs400_centos7.3_optsoftware/intel/
+	parallel_studio_xe_2018_update1/compilers_and_libraries_2018.1.163/lin
+	ux/mpi/bin64/intel64:/nics/e/sw/cs400_centos7.3_optsoftware/intel/para
+	llel_studio_xe_2018_update1/compilers_and_libraries_2018.1.163/linux/m
+	pi/bin64:/nics/e/sw/cs400_centos7.3_optsoftware/intel/parallel_studio_
+	xe_2018_update1/advisor_2018.1.0.523188/bin64:/nics/e/sw/cs400_centos7
+	.3_optsoftware/intel/parallel_studio_xe_2018_update1/inspector_2018.1.
+	0.522981/bin64:/nics/a/proj/nics/support/bin:/usr/share/Modules/bin:/o
+	pt/moab/bin:/usr/local/bin:/bin:/usr/bin:/usr/bin:/usr/local/sbin:/usr
+	/sbin:/nics/b/home/kgeorgio/.local/bin:/nics/b/home/kgeorgio/bin:/nics
+	/b/home/kgeorgio/.local/bin:/nics/b/home/kgeorgio/bin,
+	PBS_O_MAIL=/var/spool/mail/kgeorgio,PBS_O_SHELL=/bin/bash,
+	PBS_O_LANG=en_US.UTF-8,
+	PBS_O_SUBMIT_FILTER=/usr/local/sbin/torque_submitfilter,
+	PBS_O_WORKDIR=/lustre/haven/proj/UTK0150/kgeorgio/playground/assignme
+	nt2,PBS_O_HOST=acf-login8.acf.nics.utk.edu,PBS_O_SERVER=apollo-acf
+    euser = kgeorgio
+    egroup = tug2106
+    queue_type = E
+    etime = Wed Mar 17 22:21:11 2021
+    submit_args = /lustre/haven/proj/UTK0150/kgeorgio/playground/assignment2/k
+	means_distributed_iris_nodes2ppn10.pbs
+    start_time = Wed Mar 17 22:21:48 2021
+    Walltime.Remaining = 296
+    start_count = 1
+    fault_tolerant = False
+    job_radix = 0
+    submit_host = acf-login8.acf.nics.utk.edu
+    init_work_dir = /lustre/haven/proj/UTK0150/kgeorgio/playground/assignment2
+	
+    request_version = 1
+    req_information.task_count.0 = 1
+    req_information.lprocs.0 = 20
+    req_information.swap.0 = 83886080kb
+    req_information.thread_usage_policy.0 = allowthreads
+    req_information.hostlist.0 = acf-sc100:ppn=20
+    req_information.task_usage.0.task.0.cpu_list = 0-19
+    req_information.task_usage.0.task.0.mem_list = 0-1
+    req_information.task_usage.0.task.0.cores = 0
+    req_information.task_usage.0.task.0.threads = 20
+    req_information.task_usage.0.task.0.host = acf-sc100
+    cpuset_string = acf-sc100:0-19
+    memset_string = acf-sc100:0-1
+
