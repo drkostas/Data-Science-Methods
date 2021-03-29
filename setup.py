@@ -13,7 +13,8 @@ class CleanCommand(Command):
     def finalize_options(self):
         pass
 
-    def run(self):
+    @staticmethod
+    def run():
         os.system('rm -vrf ./build ./dist ./*.pyc ./*.tgz ./*.egg-info')
 
 

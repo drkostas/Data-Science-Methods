@@ -8,6 +8,7 @@ bench:
       max_float: 345.678
       num_loops: 100000
     type: math_calc
+    enabled: True
   - config:
       num_threads_processes:
         - 2
@@ -16,3 +17,4 @@ bench:
       max_float: 123.456
       num_loops: 150000
     type: fill_and_empty_list
+    enabled: True

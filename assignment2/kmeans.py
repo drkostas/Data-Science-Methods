@@ -1,19 +1,16 @@
 import os
-import logging
 from typing import Dict, Callable
 from mpi4py import MPI
 import numpy as np
 
-from playground.fancy_log.colorized_log import ColorizedLog
-from playground.main import setup_log, timeit
-from datetime import datetime
+from playground import ColorizedLogger, timeit
 
 
 class KMeansRunner:
     run_type: str
     rank: int
     size: int
-    logger: ColorizedLog
+    logger: ColorizedLogger
     colors: Dict
     run_func: Callable
 
@@ -48,8 +45,8 @@ class KMeansRunner:
             for col_ind in range(8, self.size + 1):
                 self.colors[col_ind] = 'green'
         self._kmeans_log_setup(log_name=log_name)
-        self.logger = ColorizedLog(logging.getLogger(f'KMeans {run_type} Proc({self.rank})'),
-                                   self.colors[self.rank])
+        self.logger = ColorizedLogger(f'KMeans {run_type} Proc({self.rank})',
+                                      self.colors[self.rank])
         if self.rank == 0:
             self.logger.info(f"Started with {self.size} processes.")
 
@@ -57,7 +54,7 @@ class KMeansRunner:
     def _kmeans_log_setup(log_name):
         sys_path = os.path.dirname(os.path.realpath(__file__))
         log_path = os.path.join(sys_path, '..', 'logs', log_name)
-        setup_log(log_path=log_path, mode='a')
+        ColorizedLogger.setup_logger(log_path=log_path, clear_log=False)
 
     @staticmethod
     def _chunk_list(seq, num):
@@ -158,7 +155,8 @@ class KMeansRunner:
         """Run k-means algorithm to convergence.
 
         Args:
-            features: numpy.ndarray: An num_points-by-d array describing num_points data points each of dimension d
+            features: numpy.ndarray: An num_points-by-d array describing num_points data points each
+            of dimension d
             num_clusters: int: The number of clusters desired
         """
         num_points = features.shape[0]  # num sample points
@@ -322,15 +320,14 @@ class KMeansRunner:
             and maximization steps.
 
             Args:
-                features: numpy.ndarray: An num_points-by-d array describing num_points data points each of
-                    dimension d.
+                features: numpy.ndarray: An num_points-by-d array describing num_points data points
+                each of dimension d.
                 num_clusters: int: The number of clusters desired.
             Returns:
                 centroids: numpy.ndarray: A num_clusters-by-d array of cluster centroid
                     positions.
-                cluster_assignments: numpy.ndarray: An num_points-length vector of integers whose values
-                    from 0 to num_clusters-1 indicate which cluster each data element
-                    belongs to.
+                cluster_assignments: numpy.ndarray: An num_points-length vector of integers whose
+                values from 0 to num_clusters-1 indicate which cluster each data element belongs to.
 
             [1] https://en.wikipedia.org/wiki/K-means_clustering
             [2] https://en.wikipedia.org/wiki/Lloyd%27s_algorithm
@@ -436,8 +433,6 @@ class KMeansRunner:
             # Compute all-pairs distances from points to centroids
             with timeit(custom_print='First Loop Distances Calc Time: {duration:2.5f} sec(s)',
                         skip=(self.rank != 0 or loop_cnt != 1)):
-                centroid_distances_chunked = np.square(features_chunked[:, np.newaxis] - centroids) \
-                    .sum(axis=2)
                 centroid_distances_chunked = np.square(cdist(features_chunked, centroids, 'euclidean'))
 
             # Expectation step: assign clusters

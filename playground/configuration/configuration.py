@@ -8,9 +8,9 @@ import re
 import yaml
 from jsonschema import validate as validate_json_schema
 
-from playground.fancy_log.colorized_log import ColorizedLog
+from playground import ColorizedLogger
 
-logger = ColorizedLog(logging.getLogger('Config'), 'white')
+logger = ColorizedLogger('Config', 'white')
 
 
 class Configuration:
@@ -23,7 +23,8 @@ class Configuration:
     env_variable_tag: str = '!ENV'
     env_variable_pattern: str = r'.*?\${(\w+)}.*?'  # ${var}
 
-    def __init__(self, config_src: Union[TextIOWrapper, StringIO, str], config_schema_path: str = 'yml_schema.json'):
+    def __init__(self, config_src: Union[TextIOWrapper, StringIO, str],
+                 config_schema_path: str = 'yml_schema.json'):
         """
        The basic constructor. Creates a new instance of the Configuration class.
 
@@ -59,13 +60,15 @@ class Configuration:
         """
 
         if config_schema_path[0] != os.sep:
-            config_schema_path = '/'.join([os.path.dirname(os.path.realpath(__file__)), config_schema_path])
+            config_schema_path = '/'.join([os.path.dirname(os.path.realpath(__file__)),
+                                           config_schema_path])
         with open(config_schema_path) as f:
             configuration_schema = json.load(f)
         return configuration_schema
 
     @staticmethod
-    def load_yml(config_src: Union[TextIOWrapper, StringIO, str], env_tag: str, env_pattern: str) -> Tuple[Dict, str]:
+    def load_yml(config_src: Union[TextIOWrapper, StringIO, str], env_tag: str, env_pattern: str) \
+            -> Tuple[Dict, str]:
         """
         Loads the configuration file
         Args:

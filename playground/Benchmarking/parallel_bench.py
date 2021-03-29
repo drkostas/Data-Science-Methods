@@ -2,13 +2,12 @@ import random
 import multiprocessing as mp
 import threading
 from concurrent import futures
-import logging
 from typing import List
 import time
 
-from playground.fancy_log.colorized_log import ColorizedLog
+from playground import ColorizedLogger
 
-logger = ColorizedLog(logging.getLogger('ParallelBench'), 'red')
+logger = ColorizedLogger('ParallelBench', 'red')
 
 
 class BenchTests:

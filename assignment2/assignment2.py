@@ -4,12 +4,11 @@ import os
 import sys
 from typing import Dict
 
-from playground.main import setup_log, argparser, timeit
-from playground.fancy_log.colorized_log import ColorizedLog
-from playground.configuration.configuration import Configuration
+from playground.main import get_args
+from playground import ColorizedLogger, Configuration, timeit
 
 # Create loggers with different colors to use in each problem
-main_logger = ColorizedLog(logging.getLogger('Main'), 'yellow')
+main_logger = ColorizedLogger('Main', 'yellow')
 
 
 def prepare_for_run(name: str, conf: Dict):
@@ -66,8 +65,8 @@ def main():
     """
 
     # Initialize
-    args = argparser()
-    setup_log(args.log, args.debug, 'w')
+    args = get_args()
+    ColorizedLogger.setup_logger(args.log, args.debug, True)
     main_logger.info("Starting Assignment 2")
     # Load the configuration
     conf = Configuration(config_src=args.config_file)

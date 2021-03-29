@@ -1,12 +1,10 @@
 import sys
 import os
-import logging
 from typing import Dict
 from mpi4py import MPI
 import numpy as np
 
-from playground.fancy_log.colorized_log import ColorizedLog
-from playground.main import setup_log
+from playground import ColorizedLogger
 
 
 class KMeansRunner:
@@ -14,7 +12,7 @@ class KMeansRunner:
     comm: MPI.COMM_WORLD
     rank: int
     size: int
-    logger: ColorizedLog
+    logger: ColorizedLogger
     colors: Dict = {
         0: 'blue',
         1: 'green',
@@ -33,16 +31,16 @@ class KMeansRunner:
             self.comm = MPI.COMM_WORLD
             self.rank = self.comm.rank
             self.size = self.comm.size
-            self.logger = ColorizedLog(logging.getLogger('Kmeans %s' % self.rank),
-                                       self.colors[self.rank])
+            self.logger = ColorizedLogger('Kmeans %s' % self.rank,
+                                          self.colors[self.rank])
         else:
-            self.logger = ColorizedLog(logging.getLogger('Kmeans Serial'), self.colors[0])
+            self.logger = ColorizedLogger('Kmeans Serial', self.colors[0])
 
     @staticmethod
     def _kmeans_log_setup():
         sys_path = os.path.dirname(os.path.realpath(__file__))
         log_path = os.path.join(sys_path, '..', '..', 'logs', 'kmeans.log')
-        setup_log(log_path=log_path)
+        ColorizedLogger.setup_logger(log_path=log_path)
 
     @staticmethod
     def _chunk_list(seq, num):
@@ -55,15 +53,16 @@ class KMeansRunner:
             last += avg
         return out
 
-    def _run_vectorized(self, features: np.ndarray, num_clusters: int):
+    @staticmethod
+    def _run_vectorized(features: np.ndarray, num_clusters: int):
         """Run k-means algorithm to convergence.
 
         This is the Lloyd's algorithm [2] which consists of alternating expectation
         and maximization steps.
 
         Args:
-            features: numpy.ndarray: An num_features-by-d array describing num_features data points each of
-                dimension d.
+            features: numpy.ndarray: An num_features-by-d array describing num_features data points
+            each of dimension d.
             num_clusters: int: The number of clusters desired.
         Returns:
             centroids: numpy.ndarray: A num_clusters-by-d array of cluster centroid
@@ -105,7 +104,8 @@ class KMeansRunner:
         # return cluster centroids and cluster_assignments
         return centroids, cluster_assignments
 
-    def _run_simple(self, features: np.ndarray, num_clusters: int):
+    @staticmethod
+    def _run_simple(features: np.ndarray, num_clusters: int):
         """Run k-means algorithm to convergence.
 
         Args:

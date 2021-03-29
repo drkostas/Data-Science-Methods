@@ -1,12 +1,10 @@
 import sys
 import os
-import logging
 from typing import Dict
 from mpi4py import MPI
 import numpy as np
 
-from playground.fancy_log.colorized_log import ColorizedLog
-from playground.main import setup_log
+from playground import ColorizedLogger
 
 
 class MPlayI:
@@ -14,7 +12,7 @@ class MPlayI:
     comm: MPI.COMM_WORLD
     rank: int
     size: int
-    logger: ColorizedLog
+    logger: ColorizedLogger
     colors: Dict = {
         0: 'blue',
         1: 'green',
@@ -32,7 +30,6 @@ class MPlayI:
         self.rank = self.comm.rank
         self.size = self.comm.size
 
-        self.logger = ColorizedLog(logging.getLogger('MPI %s' % self.rank), self.colors[self.rank])
         if self.rank == 0:
             self.logger.info(f"Starting with size: {self.size}")
 
@@ -40,7 +37,7 @@ class MPlayI:
     def _mpi_log_setup():
         sys_path = os.path.dirname(os.path.realpath(__file__))
         log_path = os.path.join(sys_path, '..', '..', 'logs', 'mpi.log')
-        setup_log(log_path=log_path)
+        ColorizedLogger.setup_logger(log_path=log_path)
 
     @staticmethod
     def _chunk_list(seq, num):
@@ -206,8 +203,6 @@ class MPlayI:
             res = None
 
         data_ch = self.comm.bcast(data_ch, root=0)  # Broadcast split array to other cores
-        chunk_sizes = self.comm.bcast(chunk_sizes_input, root=0)
-        displacements = self.comm.bcast(displacements_input, root=0)
         chunk_sizes_output = self.comm.bcast(chunk_sizes_output, root=0)
         displacements_output = self.comm.bcast(displacements_output, root=0)
 
@@ -248,8 +243,8 @@ class MPlayI:
             cluster_assignments = np.array([0, 1, 1, 3, 1, 1, 2, 4, 1, 3, 3], dtype=np.int64)
             num_features = data.shape[1]
             items_per_split_orig, starting_index_orig = self._chunk_for_scatterv(data, self.size)
-            items_per_split = items_per_split_orig*num_features
-            starting_index = starting_index_orig*num_features
+            items_per_split = items_per_split_orig * num_features
+            starting_index = starting_index_orig * num_features
             self.logger.info(f"Data ({data.shape}): {data[:1]}, ..")
             data = data.flatten()
             self.logger.info(f"Data Flat "
@@ -280,9 +275,8 @@ class MPlayI:
         cluster_assignments_chunked = np.zeros(items_per_split_orig[self.rank], dtype=np.int64)
         self.logger.info(f"Initialized chunked assignments ({cluster_assignments_chunked.shape}): "
                          f"{cluster_assignments_chunked}")
-        self.comm.Scatterv([cluster_assignments, items_per_split_orig, starting_index_orig, MPI.INT64_T],
-                           cluster_assignments_chunked,
-                           root=0)
+        self.comm.Scatterv([cluster_assignments, items_per_split_orig, starting_index_orig,
+                            MPI.INT64_T], cluster_assignments_chunked, root=0)
         self.logger.info(f"Received cluster_assignments_chunked "
                          f"({cluster_assignments_chunked.shape}): {cluster_assignments_chunked}")
 
@@ -319,26 +313,25 @@ class MPlayI:
         total_size = self.comm.reduce(size_cluster_1_chunked, op=MPI.SUM, root=0)
         if self.rank == 0:
             self.logger.info(f"Total size: {total_size}. Summed sums: {sum_cluster_1}")
-            avg_cluster_1 = sum_cluster_1/total_size
+            avg_cluster_1 = sum_cluster_1 / total_size
             self.logger.info(f"Average Cluster 1: {avg_cluster_1}")
-
 
 
 if __name__ == '__main__':
     mpi_play = MPlayI()
-if sys.argv[1] == 'simple':
-    mpi_play.simple()
-elif sys.argv[1] == 'broadcast':
-    mpi_play.broadcast()
-elif sys.argv[1] == 'scatter_gather':
-    mpi_play.scatter_gather()
-elif sys.argv[1] == 'all_gather':
-    mpi_play.all_gather()
-elif sys.argv[1] == 'mpi_reduce':
-    mpi_play.mpi_reduce()
-elif sys.argv[1] == 'mpi_all_reduce':
-    mpi_play.mpi_all_reduce()
-elif sys.argv[1] == 'count_lines':
-    mpi_play.count_lines()
-elif sys.argv[1] == 'reduce_complex':
-    mpi_play.reduce_complex()
+    if sys.argv[1] == 'simple':
+        mpi_play.simple()
+    elif sys.argv[1] == 'broadcast':
+        mpi_play.broadcast()
+    elif sys.argv[1] == 'scatter_gather':
+        mpi_play.scatter_gather()
+    elif sys.argv[1] == 'all_gather':
+        mpi_play.all_gather()
+    elif sys.argv[1] == 'mpi_reduce':
+        mpi_play.mpi_reduce()
+    elif sys.argv[1] == 'mpi_all_reduce':
+        mpi_play.mpi_all_reduce()
+    elif sys.argv[1] == 'count_lines':
+        mpi_play.count_lines()
+    elif sys.argv[1] == 'reduce_complex':
+        mpi_play.reduce_complex()

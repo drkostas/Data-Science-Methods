@@ -1,23 +1,19 @@
 from abc import ABC, abstractmethod
 
-import logging
 
-
-class AbstractFancyLog(ABC):
+class AbstractFancyLogger(ABC):
     """Abstract class of the FancyLog package"""
-    __slots__ = ('_logger',)
-
-    _log: logging.Logger
 
     @abstractmethod
-    def __init__(self, logger, *args, **kwargs) -> None:
+    def __init__(self, *args, **kwargs) -> None:
         """The basic constructor. Creates a new instance of FancyLog using the
         specified arguments
 
         Args:
-            logger:
             *args:
             **kwargs:
         """
 
-        self._logger = logger
+    @abstractmethod
+    def create_logger(self, *args, **kwargs):
+        pass

@@ -1,24 +1,23 @@
 import logging
 import traceback
 import os
-from typing import Dict, List
+from typing import Dict
 from math import ceil
 from itertools import repeat, takewhile
 
 import multiprocessing
 import numpy as np
 
-from playground.main import setup_log, argparser, timeit
-from playground.fancy_log.colorized_log import ColorizedLog
-from playground.configuration.configuration import Configuration
+from playground.main import get_args
+from playground import ColorizedLogger, Configuration, timeit
 
 # Create loggers with different colors to use in each problem
-main_logger = ColorizedLog(logging.getLogger('Main'), 'yellow')
-p1_logger = ColorizedLog(logging.getLogger('Problem1'), 'blue')
-p2_logger = ColorizedLog(logging.getLogger('Problem2'), 'green')
-p3_logger = ColorizedLog(logging.getLogger('Problem3'), 'magenta')
-extra_ch_logger = ColorizedLog(logging.getLogger('ExtraMain'), 'yellow')
-extra_sub_ch_logger = ColorizedLog(logging.getLogger('ExtraSub'), 'cyan')
+main_logger = ColorizedLogger('Main', 'yellow')
+p1_logger = ColorizedLogger('Problem1', 'blue')
+p2_logger = ColorizedLogger('Problem2', 'green')
+p3_logger = ColorizedLogger('Problem3', 'magenta')
+extra_ch_logger = ColorizedLogger('ExtraMain', 'yellow')
+extra_sub_ch_logger = ColorizedLogger('ExtraSub', 'cyan')
 
 
 # Global Vars (For the Extra Challenges)
@@ -372,8 +371,6 @@ def extra_3(conf_props: Dict):
         pool.join()
 
 
-
-
 def extra_challenges(conf: Dict) -> None:
     """ Extra Challenges solution
 
@@ -397,7 +394,7 @@ def extra_challenges(conf: Dict) -> None:
         extra_3(conf['properties']["ch3"])
     else:
         extra_ch_logger.info("3: Collect results from workers using a pythonic list "
-                            "(using starmap_async and Lock()).")
+                             "(using starmap_async and Lock()).")
         extra_ch_logger.info("Last progress report:")
         extra_ch_logger.info("For this and the 4th problem, I managed to create a Lock() and share it")
         extra_ch_logger.info("with the workers by creating an initializer function for the Pool().")
@@ -417,8 +414,8 @@ def main():
     """
 
     # Initialize
-    args = argparser()
-    setup_log(args.log, args.debug)
+    args = get_args()
+    ColorizedLogger.setup_logger(args.log, args.debug)
     main_logger.info("Starting Assignment 1")
     # Load the configuration
     conf = Configuration(config_src=args.config_file)

@@ -8,7 +8,6 @@ from jsonschema.exceptions import ValidationError
 from typing import Dict
 import logging
 import os
-import sys
 
 from playground.configuration.configuration import Configuration, validate_json_schema
 

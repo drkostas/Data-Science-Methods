@@ -1,108 +1,18 @@
-import traceback
-import logging
 import argparse
+import logging
 import os
 import sys
-from time import time
-from functools import wraps
-from typing import Dict, Callable
-from contextlib import ContextDecorator
+import traceback
+from typing import Dict
 
-from playground.fancy_log.colorized_log import ColorizedLog
-from playground.configuration.configuration import Configuration
-from playground.Benchmarking.parallel_bench import run_math_calc_test, run_fill_and_empty_list_test
+from playground import ColorizedLogger, timeit, Configuration
+from playground import run_math_calc_test, run_fill_and_empty_list_test
 
-logger = ColorizedLog(logging.getLogger('Main'), 'yellow')
-time_logger = ColorizedLog(logging.getLogger('Timeit'), 'white')
+logger = ColorizedLogger(logger_name='Main', color='yellow')
+time_logger = ColorizedLogger('Timeit', 'white')
 
 
-class timeit(ContextDecorator):
-
-    def __init__(self, **kwargs):
-        """Decorator/ContextManager for counting the execution times of functions
-
-        Args:
-            custom_print: Custom print string which can be formatted using `func_name`, `args`,
-                          and `duration`. Use {0}, {1}, .. to reference the first, second, ... argument
-        """
-        self.__dict__.update(kwargs)
-
-    def __call__(self, func: Callable):
-        """ This is called only when invoked as a decorator
-
-        Args:
-            method: The method to wrap
-        """
-
-        @wraps(func)
-        def timed(*args, **kwargs):
-            with self._recreate_cm():
-                self.func_name = func.__name__
-                self.args = args
-                self.kwargs = kwargs
-                self.all_args = (*args, *kwargs.values()) if kwargs != {} else args
-                return func(*args, **kwargs)
-
-        return timed
-
-    def __enter__(self, *args, **kwargs):
-        self.ts = time()
-        return self
-
-    def __exit__(self, type, value, traceback):
-        self.te = time()
-        total = self.te - self.ts
-        if hasattr(self, 'func_name'):
-            if not hasattr(self, 'custom_print'):
-                print_string = 'Func: {func_name!r} with args: {args!r} took: {duration:2.5f} sec(s)'
-            else:
-                print_string = self.custom_print
-            time_logger.info(print_string.format(*self.args, func_name=self.func_name,
-                                                 args=self.all_args,
-                                                 duration=total,
-                                                 **self.kwargs))
-        else:
-            if not hasattr(self, 'custom_print'):
-                print_string = 'Code block took: {duration:2.5f} sec(s)'
-            else:
-                print_string = self.custom_print
-            if hasattr(self, 'file'):
-                self.file.write(print_string.format(duration=total))
-            if hasattr(self, 'skip'):
-                if not self.skip:
-                    time_logger.info(print_string.format(duration=total))
-            else:
-                time_logger.info(print_string.format(duration=total))
-
-
-def setup_log(log_path: str = '../logs/default.log', debug: bool = False, mode: str = 'a') -> None:
-    """Set the parameters of the logger
-
-    Args:
-        log_path (str): The path the log file is going to be saved
-        debug (bool): Whether to print debug messages or not
-        mode: (str): The write mode
-    """
-    log_path = log_path.split(os.sep)
-    if len(log_path) > 1:
-
-        try:
-            os.makedirs((os.sep.join(log_path[:-1])))
-        except FileExistsError:
-            pass
-    log_filename = os.sep.join(log_path)
-    # noinspection PyArgumentList
-    logging.basicConfig(level=logging.INFO if debug is not True else logging.DEBUG,
-                        format='%(asctime)s %(name)-12s %(levelname)-8s %(message)s',
-                        datefmt='%Y-%m-%d %H:%M:%S',
-                        handlers=[
-                            logging.FileHandler(log_filename, mode=mode),
-                            logging.StreamHandler()
-                        ]
-                        )
-
-
-def argparser() -> argparse.Namespace:
+def get_args() -> argparse.Namespace:
     """Setup the argument parser
 
     Returns:
@@ -182,11 +92,12 @@ def run_kmeans(conf: Dict) -> None:
     run_file_path = os.path.join(sys_path, 'KMeans', 'kmeans.py')
     if run_type == 'mpi':
         nprocs = config['nprocs']
-        cmd = 'mpirun -n {nprocs} {python} {file} {num_clusters} {type}'.format(nprocs=nprocs,
-                                                                                python=sys.executable,
-                                                                                file=run_file_path,
-                                                                                type=run_type,
-                                                                                num_clusters=num_clusters)
+        cmd = 'mpirun -n {nprocs} {python} {file} {num_clusters} {type}' \
+            .format(nprocs=nprocs,
+                    python=sys.executable,
+                    file=run_file_path,
+                    type=run_type,
+                    num_clusters=num_clusters)
 
     elif run_type in ('simple', 'vectorized', 'distributed'):
         cmd = '{python} {file} {num_clusters} {type}'.format(python=sys.executable,
@@ -210,8 +121,8 @@ def main():
     """
 
     # Initializing
-    args = argparser()
-    setup_log(args.log, args.debug)
+    args = get_args()
+    ColorizedLogger.setup_logger(args.log, args.debug)
     # Load the configuration
     conf = Configuration(config_src=args.config_file)
 
