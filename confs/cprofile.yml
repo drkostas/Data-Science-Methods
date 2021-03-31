@@ -1,0 +1,7 @@
+tag: all
+cprofile:
+  - properties:
+      profiling: disabled
+      func_to_run: hello_world
+    type: required
+    enabled: true
