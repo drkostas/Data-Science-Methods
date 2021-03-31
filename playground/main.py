@@ -116,26 +116,20 @@ def run_cprofile(conf: Dict, log_path: str) -> None:
     config = conf['properties']
     func_to_run = config['func_to_run']
     prof_type = config['profiling']
+    sort_stats = config['sort_stats']
     logger.info(f"Invoking profiling_play.py with func_to_run=`{func_to_run}`")
     logger.nl()
     sys_path = os.path.dirname(os.path.realpath(__file__))
     run_file_path = os.path.join(sys_path, 'profiling_funcs', 'profiling_play.py')
-    # if run_type == 'mpi':
-    #     nprocs = config['nprocs']
-    #     cmd = 'mpirun -n {nprocs} {python} {file} {num_clusters} {type}' \
-    #         .format(nprocs=nprocs,
-    #                 python=sys.executable,
-    #                 file=run_file_path,
-    #                 type=run_type,
-    #                 num_clusters=num_clusters)
-
-    # elif run_type in ('simple', 'vectorized', 'distributed'):
-    cmd = f'{sys.executable} {run_file_path} -f {func_to_run} -p {prof_type} -l {log_path}'
-    # else:
-    #     raise Exception(f'Argument {run_type} not recognized!')
-    with timeit(custom_print=f'Running Profiling {func_to_run} took' +
-                             ' {duration:2.5f} sec(s)'):
-        os.system(cmd)
+    if prof_type == 'external':
+        cmd = f'{sys.executable} -m cProfile -o profiling_play.o {run_file_path} -f {func_to_run} ' \
+              f'-p {prof_type} -l {log_path} -s {sort_stats}'
+    elif prof_type in ('internal', 'disabled'):
+        cmd = f'{sys.executable} {run_file_path} -f {func_to_run} -p {prof_type} ' \
+              f'-l {log_path} -s {sort_stats}'
+    else:
+        raise Exception(f'Argument {func_to_run} not recognized!')
+    os.system(cmd)
 
 
 @timeit()

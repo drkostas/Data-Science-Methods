@@ -3,5 +3,18 @@ cprofile:
   - properties:
       profiling: disabled
       func_to_run: hello_world
+      sort_stats: tottime
+    type: required
+    enabled: true
+  - properties:
+      profiling: disabled
+      func_to_run: boston_gbpm
+      sort_stats: cumtime
+    type: required
+    enabled: true
+  - properties:
+      profiling: external
+      func_to_run: exponentiate
+      sort_stats: cumtime
     type: required
     enabled: true
