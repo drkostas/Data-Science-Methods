@@ -5,7 +5,7 @@ import sys
 import traceback
 from typing import Dict
 
-from playground import ColorizedLogger, timeit, Configuration
+from playground import ColorizedLogger, timeit, Configuration, NumbaPlay
 from playground import run_math_calc_test, run_fill_and_empty_list_test
 
 logger = ColorizedLogger(logger_name='Main', color='yellow')
@@ -132,6 +132,25 @@ def run_cprofile(conf: Dict, log_path: str) -> None:
     os.system(cmd)
 
 
+def run_numba(conf: Dict):
+    config = conf['properties']
+    test_to_run = config['test_to_run']
+    nplay = NumbaPlay(conf=config)
+    logger.info(f"Calling NumbaPlay for test_to_run=`{test_to_run}`")
+    logger.nl()
+
+    if test_to_run == 'pythagorean':
+        nplay.pythagorean_test()
+    elif test_to_run == 'monte_carlo_pi':
+        nplay.monte_carlo_pi_test()
+    elif test_to_run == 'prange':
+        nplay.prange_test()
+    elif test_to_run == 'logistic_regression':
+        nplay.logistic_regression_test()
+    else:
+        raise Exception("Config type not recognized!")
+
+
 @timeit()
 def main():
     """This is the main function of main.py
@@ -166,6 +185,10 @@ def main():
         for sub_config in conf.get_config(config_name='cprofile'):
             if check_required(sub_config['type'], sub_config['enabled'], conf.tag):
                 run_cprofile(sub_config, log_path=log_path)
+    if 'numba' in conf.config_keys:
+        for sub_config in conf.get_config(config_name='numba'):
+            if check_required(sub_config['type'], sub_config['enabled'], conf.tag):
+                run_numba(sub_config)
 
 
 if __name__ == '__main__':

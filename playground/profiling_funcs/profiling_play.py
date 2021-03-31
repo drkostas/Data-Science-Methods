@@ -1,7 +1,3 @@
-# import sys
-# import os
-# from typing import Dict
-# import numpy as np
 from sklearn import datasets
 from sklearn.metrics import mean_squared_error
 from sklearn.model_selection import train_test_split

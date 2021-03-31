@@ -1,0 +1,26 @@
+tag: all
+numba:
+  - properties:
+      test_to_run: pythagorean
+      x: 123456
+      y: 98765
+    type: required
+    enabled: true
+  - properties:
+      test_to_run: monte_carlo_pi
+      nsamples: 40
+    type: required
+    enabled: true
+  - properties:
+      test_to_run: prange
+      A: 100
+    type: required
+    enabled: true
+  - properties:
+      test_to_run: logistic_regression
+      x1: 123456
+      x2: 5
+      w: 123
+      iterations: 120
+    type: required
+    enabled: true
