@@ -1,19 +1,19 @@
 tag: all
 cprofile:
   - properties:
-      profiling: disabled
+      profiling: external
       func_to_run: hello_world
       sort_stats: tottime
     type: required
-    enabled: true
+    enabled: false
   - properties:
-      profiling: disabled
+      profiling: internal_cprof
       func_to_run: boston_gbpm
       sort_stats: cumtime
     type: required
-    enabled: true
+    enabled: false
   - properties:
-      profiling: external
+      profiling: internal_viz
       func_to_run: exponentiate
       sort_stats: cumtime
     type: required

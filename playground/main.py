@@ -124,7 +124,7 @@ def run_cprofile(conf: Dict, log_path: str) -> None:
     if prof_type == 'external':
         cmd = f'{sys.executable} -m cProfile -o profiling_play.o {run_file_path} -f {func_to_run} ' \
               f'-p {prof_type} -l {log_path} -s {sort_stats}'
-    elif prof_type in ('internal', 'disabled'):
+    elif prof_type in ('internal_prof', 'internal_viz', 'disabled'):
         cmd = f'{sys.executable} {run_file_path} -f {func_to_run} -p {prof_type} ' \
               f'-l {log_path} -s {sort_stats}'
     else:

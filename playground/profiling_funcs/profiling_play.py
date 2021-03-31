@@ -87,7 +87,7 @@ def setup_args():
     parser.add_argument('-f', type=str, required=True, help='Which function to run',
                         choices=['hello_world', 'boston_gbpm', 'exponentiate'])
     parser.add_argument('-p', type=str, required=True, help='Profiling Type',
-                        choices=['internal', 'external', 'disabled'])
+                        choices=['internal_cprof', 'internal_viz', 'external', 'disabled'])
     parser.add_argument('-s', type=str, required=True, help='Sort stats by',
                         choices=['tottime', 'cumtime'])
     parser.add_argument('-l', type=str, required=False, default='profiling.log', help='Log File Name')
@@ -101,18 +101,26 @@ if __name__ == "__main__":
 
     # Read and Parse arguments
     function_to_run, profiling_type, log_name, sort_stats = setup_args()
-    if profiling_type == 'internal':
+    if profiling_type == 'internal_cprof':
         import cProfile
         import pstats
 
         profiler = cProfile.Profile()
         profiler.enable()
+    elif profiling_type == 'internal_viz':
+        from viztracer import VizTracer
+
+        tracer = VizTracer()
+        tracer.start()
 
     # Initialize and run ProfilingPlay
     prof_play = ProfilingPlay(log_name=log_name)
     prof_play.run(func_to_run=function_to_run)
 
-    if profiling_type == 'internal':
+    if profiling_type == 'internal_cprof':
         profiler.disable()
         stats = pstats.Stats(profiler).sort_stats(sort_stats)
         stats.print_stats()
+    elif profiling_type == 'internal_viz':
+        tracer.stop()
+        tracer.save(f"{function_to_run}.html")
