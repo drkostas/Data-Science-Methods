@@ -8,11 +8,11 @@ from playground import ColorizedLogger
 
 
 class MPlayI:
-    __slots__ = ('comm', 'rank', 'size', 'logger')
+    __slots__ = ('comm', 'rank', 'size')
     comm: MPI.COMM_WORLD
     rank: int
     size: int
-    logger: ColorizedLogger
+    logger: ColorizedLogger = ColorizedLogger('MPI Play', 'cyan')
     colors: Dict = {
         0: 'blue',
         1: 'green',

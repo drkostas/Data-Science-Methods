@@ -9,7 +9,6 @@ from playground import ColorizedLogger, timeit, Configuration
 from playground import run_math_calc_test, run_fill_and_empty_list_test
 
 logger = ColorizedLogger(logger_name='Main', color='yellow')
-time_logger = ColorizedLogger('Timeit', 'white')
 
 
 def get_args() -> argparse.Namespace:
@@ -111,6 +110,34 @@ def run_kmeans(conf: Dict) -> None:
         os.system(cmd)
 
 
+def run_cprofile(conf: Dict, log_path: str) -> None:
+    """ Runs the CProfile tests for the specified configuration. """
+
+    config = conf['properties']
+    func_to_run = config['func_to_run']
+    prof_type = config['profiling']
+    logger.info(f"Invoking profiling_play.py with func_to_run=`{func_to_run}`")
+    logger.nl()
+    sys_path = os.path.dirname(os.path.realpath(__file__))
+    run_file_path = os.path.join(sys_path, 'profiling_funcs', 'profiling_play.py')
+    # if run_type == 'mpi':
+    #     nprocs = config['nprocs']
+    #     cmd = 'mpirun -n {nprocs} {python} {file} {num_clusters} {type}' \
+    #         .format(nprocs=nprocs,
+    #                 python=sys.executable,
+    #                 file=run_file_path,
+    #                 type=run_type,
+    #                 num_clusters=num_clusters)
+
+    # elif run_type in ('simple', 'vectorized', 'distributed'):
+    cmd = f'{sys.executable} {run_file_path} -f {func_to_run} -p {prof_type} -l {log_path}'
+    # else:
+    #     raise Exception(f'Argument {run_type} not recognized!')
+    with timeit(custom_print=f'Running Profiling {func_to_run} took' +
+                             ' {duration:2.5f} sec(s)'):
+        os.system(cmd)
+
+
 @timeit()
 def main():
     """This is the main function of main.py
@@ -122,25 +149,29 @@ def main():
 
     # Initializing
     args = get_args()
-    ColorizedLogger.setup_logger(args.log, args.debug)
+    log_path = os.path.abspath(args.log)
+    ColorizedLogger.setup_logger(log_path, args.debug, clear_log=True)
     # Load the configuration
     conf = Configuration(config_src=args.config_file)
-
     # Start
+    check_required = lambda conf_type, conf_enabled, tag: \
+        ((conf_type == 'required' or tag != 'required_only') and conf_enabled)
     if 'bench' in conf.config_keys:
-        for bench_conf in conf.get_config(config_name='bench'):
-            if bench_conf['enabled']:
-                run_bench(bench_conf)
-
+        for sub_config in conf.get_config(config_name='bench'):
+            if check_required(sub_config['type'], sub_config['enabled'], conf.tag):
+                run_bench(sub_config)
     if 'mpi' in conf.config_keys:
-        for mpi_conf in conf.get_config(config_name='mpi'):
-            if mpi_conf['enabled']:
-                run_mpi(mpi_conf)
-
+        for sub_config in conf.get_config(config_name='mpi'):
+            if check_required(sub_config['type'], sub_config['enabled'], conf.tag):
+                run_mpi(sub_config)
     if 'kmeans' in conf.config_keys:
-        for kmeans_conf in conf.get_config(config_name='kmeans'):
-            if kmeans_conf['enabled']:
-                run_kmeans(kmeans_conf)
+        for sub_config in conf.get_config(config_name='kmeans'):
+            if check_required(sub_config['type'], sub_config['enabled'], conf.tag):
+                run_kmeans(sub_config)
+    if 'cprofile' in conf.config_keys:
+        for sub_config in conf.get_config(config_name='cprofile'):
+            if check_required(sub_config['type'], sub_config['enabled'], conf.tag):
+                run_cprofile(sub_config, log_path=log_path)
 
 
 if __name__ == '__main__':

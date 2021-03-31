@@ -17,7 +17,6 @@ class ColorizedLogger(AbstractFancyLogger):
     log_date_fmt: str = '%Y-%m-%d %H:%M:%S'
     log_level: Union[int, str] = logging.INFO
     _logger: logging.Logger
-    _self_logger: logging.Logger
     log_path: str = None
     logger_name: str
     _color: str
@@ -104,6 +103,7 @@ class ColorizedLogger(AbstractFancyLogger):
     def create_logger(self, logger_name: str):
         # Create a logger, with the previously-defined handlers
         logger = logging.getLogger(logger_name)
+        logger.handlers = []
         logger.setLevel(self.log_level)
         logger = self.add_file_handler_if_needed(logger)
         # Create a streaming handler
@@ -117,6 +117,7 @@ class ColorizedLogger(AbstractFancyLogger):
         blank_streaming_handler.setFormatter(logging.Formatter(fmt=''))
         # Add streaming handlers
         logger.addHandler(main_streaming_handler)
+        logger.propagate = False
         logger.main_streaming_handler = main_streaming_handler
         logger.blank_streaming_handler = blank_streaming_handler
         # Create the new line method
