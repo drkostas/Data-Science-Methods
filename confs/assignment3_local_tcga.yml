@@ -1,0 +1,22 @@
+tag: required_only  # required_only or all
+# Jacob's Simple K-Means
+simple:
+  - properties:
+      num_clusters: 10
+      dataset: iris #../data/TCGA-PANCAN-HiSeq-801x20531/data_small.csv
+    type: required  # required or optional
+    enabled: true  # true or false
+# My Vectorized K-Means
+vectorized:
+  - properties:
+      num_clusters: 10
+      dataset: iris #../data/TCGA-PANCAN-HiSeq-801x20531/data_small.csv
+    type: optional
+    enabled: true
+# Jacob's Vectorized K-Means
+vectorized_jacob:
+  - properties:
+      num_clusters: 10
+      dataset: iris # ../data/TCGA-PANCAN-HiSeq-801x20531/data_small.csv
+    type: required
+    enabled: true
