@@ -202,7 +202,28 @@ class KMeansRunner:
         # return cluster centroids and assignments
         return centroids, cluster_assignments
 
-    def _run_vectorized(self, features: np.ndarray, num_clusters: int):
+    @staticmethod
+    def _compute_distances_vectorized(centroids: np.ndarray, features: np.ndarray) -> np.ndarray:
+        from scipy.spatial.distance import cdist
+        # all  pair-wise _squared_ distances
+        return np.square(cdist(features, centroids, 'euclidean'))
+
+    @staticmethod
+    def _expectation_step_vectorized(centroid_distances: np.ndarray,
+                                     cluster_assignments: np.ndarray) -> [np.ndarray, np.ndarray]:
+        return np.argmin(centroid_distances, axis=1), cluster_assignments
+
+    @staticmethod
+    def _maximization_step_vectorized(num_clusters: int, cluster_assignments: np.ndarray,
+                                      features: np.ndarray, centroids: np.ndarray) -> np.ndarray:
+        for cluster_ind in range(num_clusters):
+            features_of_curr_cluster = features[cluster_assignments == cluster_ind]
+            centroids[cluster_ind, :] = np.mean(features_of_curr_cluster, axis=0)
+        # USE PANDAS TO GROUP BY CLUSTER -> MEAN ???
+        return centroids
+
+    @classmethod
+    def _run_vectorized(cls, features: np.ndarray, num_clusters: int):
         """Run k-means algorithm to convergence.
 
             This is the Lloyd's algorithm [2] which consists of alternating expectation
@@ -225,8 +246,6 @@ class KMeansRunner:
         # INITIALIZATION PHASE
         # initialize centroids randomly as distinct elements of features
 
-        from scipy.spatial.distance import cdist
-
         num_points = features.shape[0]  # num sample points
         np.random.seed(0)
         centroid_ids = np.random.choice(num_points, (num_clusters,), replace=False)
@@ -238,16 +257,16 @@ class KMeansRunner:
             loop_cnt += 1
             # Compute distances from sample points to centroids
             # all  pair-wise _squared_ distances
-            centroid_distances = np.square(cdist(features, centroids, 'euclidean'))
+            centroid_distances = cls._compute_distances_vectorized(centroids, features)
 
             # Expectation step: assign clusters
-            previous_assignments = cluster_assignments
-            cluster_assignments = np.argmin(centroid_distances, axis=1)
+            cluster_assignments, \
+            previous_assignments = cls._expectation_step_vectorized(centroid_distances,
+                                                                    cluster_assignments)
 
             # Maximization step: Update centroid for each cluster
-            for cluster_ind in range(num_clusters):
-                features_of_curr_cluster = features[cluster_assignments == cluster_ind]
-                centroids[cluster_ind, :] = np.mean(features_of_curr_cluster, axis=0)
+            centroids = cls._maximization_step_vectorized(num_clusters, cluster_assignments,
+                                                          features, centroids)
             # USE PANDAS TO GROUP BY CLUSTER -> MEAN ???
             # Break Condition
             if (cluster_assignments == previous_assignments).all():
@@ -279,7 +298,7 @@ class KMeansRunner:
                 from sklearn.datasets import load_iris
                 self.features_iris, _ = load_iris(return_X_y=True)
                 self.logger.info(f"Dataset {dataset_name} loaded. Shape: {self.features_iris.shape}.")
-            run_func(features=self.features_iris, num_clusters=num_clusters)
+            centroids, assignments = run_func(features=self.features_iris, num_clusters=num_clusters)
         else:
             if self.features_tcga is None:
                 import pandas as pd
@@ -287,23 +306,21 @@ class KMeansRunner:
                 features_pd.drop('Unnamed: 0', axis=1, inplace=True)
                 self.features_tcga = features_pd.to_numpy()
                 self.logger.info(f"Dataset {dataset_name} loaded. Shape: {self.features_tcga.shape}.")
-            run_func(features=self.features_tcga, num_clusters=num_clusters)
+            centroids, assignments = run_func(features=self.features_tcga, num_clusters=num_clusters)
 
         # Run K-Means and save results
-        # sys_path = os.path.dirname(os.path.realpath(__file__))
-        # output_file_name = f'assignment3_{dataset_name}_{self.run_type}.txt'
-        # output_file_path = os.path.join(sys_path, '..', 'outputs')
-        # if not os.path.exists(output_file_path):
-        #     os.makedirs(output_file_path)
-        # output_file_path = os.path.join(output_file_path, output_file_name)
-        # with open(output_file_path, 'w') as f:
-        #     f.write(f'K-Means {self.run_type} version for the {dataset_name} dataset '
-        #             f'with {num_clusters} clusters and {self.size} process(es).\n')
-        #     centroids, assignments = self.run_func(features=features,
-        #                                                num_clusters=num_clusters)
-        #     self.logger.info(f"Final Cluster Assignments: \n{assignments}")
-        #     # Save results
-        #     f.write(f'Assignments:\n')
-        #     f.write(f'{assignments.tolist()}\n')
-        #     f.write(f'Centroids:\n')
-        #     f.write(f'{centroids.tolist()}')
+        sys_path = os.path.dirname(os.path.realpath(__file__))
+        output_file_name = f'assignment3_{dataset_name}_{run_type}.txt'
+        output_file_path = os.path.join(sys_path, '..', 'outputs')
+        if not os.path.exists(output_file_path):
+            os.makedirs(output_file_path)
+        output_file_path = os.path.join(output_file_path, output_file_name)
+        with open(output_file_path, 'w') as f:
+            f.write(f'K-Means {run_type} version for the {dataset_name} dataset '
+                    f'with {num_clusters} clusters .\n')
+            self.logger.info(f"Final Cluster Assignments: \n{assignments}")
+            # Save results
+            f.write(f'Assignments:\n')
+            f.write(f'{assignments.tolist()}\n')
+            f.write(f'Centroids:\n')
+            f.write(f'{centroids.tolist()}')
