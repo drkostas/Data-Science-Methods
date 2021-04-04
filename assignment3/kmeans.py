@@ -1,30 +1,74 @@
 import os
-from typing import Dict, Callable
-from mpi4py import MPI
+from typing import Dict, Callable, Union
 import numpy as np
 
 from playground import ColorizedLogger, timeit
 
 
 class KMeansRunner:
-    run_type: str
     logger: ColorizedLogger
-    run_func: Callable
-    features_iris: np.ndarray
-    features_tcga: np.ndarray
+    funcs: Dict
+    features_iris: Union[np.ndarray, None]
+    features_tcga: Union[np.ndarray, None]
 
-    def __init__(self, run_type: str):
-        funcs = {'simple': self._run_simple,
-                 'vectorized': self._run_vectorized,
-                 'vectorized_jacob': self._run_vectorized_jacob}
-        self.run_type = run_type
-        self.run_func = funcs[self.run_type]
+    def __init__(self):
+        self.funcs = {'simple': self._run_simple,
+                      'vectorized': self._run_vectorized,
+                      'vectorized_jacob': self._run_vectorized_jacob}
         self.features_iris = None
         self.features_tcga = None
-        self.logger = ColorizedLogger(f'KMeans {run_type}', 'green')
+        self.logger = ColorizedLogger(f'KMeans', 'green')
 
     @staticmethod
-    def _run_simple(features: np.ndarray, num_clusters: int):
+    def _compute_distances_simple(num_points: int, num_features: int, num_clusters: int,
+                                  centroids: np.ndarray, features: np.ndarray):
+        # all  pair-wise _squared_ distances
+        centroid_distances = np.zeros((num_points, num_clusters))
+        for i in range(num_points):
+            xi = features[i, :]
+            for c in range(num_clusters):
+                cc = centroids[c, :]
+                dist = 0
+                for j in range(num_features):
+                    dist += (xi[j] - cc[j]) ** 2
+                centroid_distances[i, c] = dist
+
+        return centroid_distances
+
+    @staticmethod
+    def _expectation_step_simple(num_points: int, num_clusters: int,
+                                 centroid_distances: np.ndarray, cluster_assignments: np.ndarray):
+        num_changed_assignments = 0
+        for i in range(num_points):
+            # pick closest cluster
+            min_cluster = 0
+            min_distance = np.inf
+            for c in range(num_clusters):
+                if centroid_distances[i, c] < min_distance:
+                    min_cluster = c
+                    min_distance = centroid_distances[i, c]
+            if cluster_assignments[i] != min_cluster:
+                num_changed_assignments += 1
+            cluster_assignments[i] = min_cluster
+
+        return cluster_assignments, num_changed_assignments
+
+    @staticmethod
+    def _maximization_step_simple(num_clusters: int, num_points: int, cluster_assignments: np.ndarray,
+                                  features: np.ndarray, centroids: np.ndarray):
+        for c in range(num_clusters):
+            new_centroid = 0
+            cluster_size = 0
+            for i in range(num_points):
+                if cluster_assignments[i] == c:
+                    new_centroid = new_centroid + features[i, :]
+                    cluster_size += 1
+            new_centroid = new_centroid / cluster_size
+            centroids[c, :] = new_centroid
+        return centroids
+
+    @classmethod
+    def _run_simple(cls, features: np.ndarray, num_clusters: int):
         """Run Simple K-Means algorithm to convergence.
 
         Args:
@@ -32,64 +76,91 @@ class KMeansRunner:
             num_clusters: int: The number of clusters desired
         """
 
-        N = features.shape[0]  # num sample points
-        d = features.shape[1]  # dimension of space
+        num_points = features.shape[0]  # num sample points
+        num_features = features.shape[1]  # num features
 
-        #
         # INITIALIZATION PHASE
         # initialize centroids randomly as distinct elements of xs
         np.random.seed(0)
-        cids = np.random.choice(N, (num_clusters,), replace=False)
-        centroids = features[cids, :]
-        assignments = np.zeros(N, dtype=np.uint8)
+        centroid_ids = np.random.choice(num_points, (num_clusters,), replace=False)
+        centroids = features[centroid_ids, :]
+        cluster_assignments = np.zeros(num_points, dtype=np.uint8)
 
         # loop until convergence
         while True:
             # Compute distances from sample points to centroids
-            # all  pair-wise _squared_ distances
-            cdists = np.zeros((N, num_clusters))
-            for i in range(N):
-                xi = features[i, :]
-                for c in range(num_clusters):
-                    cc = centroids[c, :]
-                    dist = 0
-                    for j in range(d):
-                        dist += (xi[j] - cc[j]) ** 2
-                    cdists[i, c] = dist
+            centroid_distances = cls._compute_distances_simple(num_points, num_features, num_clusters,
+                                                               centroids, features)
 
             # Expectation step: assign clusters
-            num_changed_assignments = 0
-            for i in range(N):
-                # pick closest cluster
-                cmin = 0
-                mindist = np.inf
-                for c in range(num_clusters):
-                    if cdists[i, c] < mindist:
-                        cmin = c
-                        mindist = cdists[i, c]
-                if assignments[i] != cmin:
-                    num_changed_assignments += 1
-                assignments[i] = cmin
+            cluster_assignments, \
+            num_changed_assignments = cls._expectation_step_simple(num_points,
+                                                                   num_clusters,
+                                                                   centroid_distances,
+                                                                   cluster_assignments)
 
             # Maximization step: Update centroid for each cluster
-            for c in range(num_clusters):
-                newcent = 0
-                clustersize = 0
-                for i in range(N):
-                    if assignments[i] == c:
-                        newcent = newcent + features[i, :]
-                        clustersize += 1
-                newcent = newcent / clustersize
-                centroids[c, :] = newcent
+            centroids = cls._maximization_step_simple(num_clusters, num_points,
+                                                      cluster_assignments, features, centroids)
 
             if num_changed_assignments == 0:
                 break
 
         # return cluster centroids and assignments
-        return centroids, assignments
+        return centroids, cluster_assignments
 
-    def _run_vectorized_jacob(self, features: np.ndarray, num_clusters: int):
+    @staticmethod
+    def _compute_distances_vectorized_jacob(num_points: int, num_clusters: int,
+                                            centroids: np.ndarray, features: np.ndarray):
+        # all  pair-wise _squared_ distances
+        centroid_distances = np.zeros((num_points, num_clusters))
+        for i in range(num_points):
+            xi = features[i, :]
+            for c in range(num_clusters):
+                cc = centroids[c, :]
+                dist = np.sum((xi - cc) ** 2)
+                centroid_distances[i, c] = dist
+        return centroid_distances
 
+    @staticmethod
+    def _expectation_step_vectorized_jacob(num_points: int, num_clusters: int,
+                                           centroid_distances: np.ndarray,
+                                           cluster_assignments: np.ndarray):
+        num_changed_assignments = 0
+        # claim: we can just do the following:
+        # assignments = np.argmin(centroid_distances, axis=1)
+        for i in range(num_points):
+            # pick closest cluster
+            cmin = 0
+            mindist = np.inf
+            for c in range(num_clusters):
+                if centroid_distances[i, c] < mindist:
+                    cmin = c
+                    mindist = centroid_distances[i, c]
+            if cluster_assignments[i] != cmin:
+                num_changed_assignments += 1
+            cluster_assignments[i] = cmin
+
+        return centroid_distances, cluster_assignments, num_changed_assignments
+
+    @staticmethod
+    def _maximization_step_vectorized_jacob(num_clusters: int, num_points: int,
+                                            cluster_assignments: np.ndarray,
+                                            features: np.ndarray, centroids: np.ndarray):
+        for c in range(num_clusters):
+            new_centroid = 0
+            cluster_size = 0
+            for i in range(num_points):
+                if cluster_assignments[i] == c:
+                    new_centroid = new_centroid + features[i, :]
+                    cluster_size += 1
+            new_centroid = new_centroid / cluster_size
+            centroids[c, :] = new_centroid
+
+        return centroids
+
+    @classmethod
+    def _run_vectorized_jacob(cls, features: np.ndarray, num_clusters: int):
         """Run k-means algorithm to convergence.
 
         Args:
@@ -99,62 +170,37 @@ class KMeansRunner:
         """
         num_points = features.shape[0]  # num sample points
 
-        #
         # INITIALIZATION PHASE
         # initialize centroids randomly as distinct elements of xs
         np.random.seed(0)
-        cids = np.random.choice(num_points, (num_clusters,), replace=False)
-        centroids = features[cids, :]
-        assignments = np.zeros(num_points, dtype=np.uint8)
+        centroids_ids = np.random.choice(num_points, (num_clusters,), replace=False)
+        centroids = features[centroids_ids, :]
+        cluster_assignments = np.zeros(num_points, dtype=np.uint8)
 
         # loop until convergence
         loop_cnt = 0
         while True:
             loop_cnt += 1
             # Compute distances from sample points to centroids
-            # all  pair-wise _squared_ distances
-            centroid_distances = np.zeros((num_points, num_clusters))
-            for i in range(num_points):
-                xi = features[i, :]
-                for c in range(num_clusters):
-                    cc = centroids[c, :]
-
-                    dist = np.sum((xi - cc) ** 2)
-
-                    centroid_distances[i, c] = dist
+            centroid_distances = cls._compute_distances_vectorized_jacob(num_points, num_clusters,
+                                                                         centroids, features)
 
             # Expectation step: assign clusters
-            num_changed_assignments = 0
-            # claim: we can just do the following:
-            # assignments = np.argmin(centroid_distances, axis=1)
-            for i in range(num_points):
-                # pick closest cluster
-                cmin = 0
-                mindist = np.inf
-                for c in range(num_clusters):
-                    if centroid_distances[i, c] < mindist:
-                        cmin = c
-                        mindist = centroid_distances[i, c]
-                if assignments[i] != cmin:
-                    num_changed_assignments += 1
-                assignments[i] = cmin
+            centroid_distances, cluster_assignments, \
+            num_changed_assignments = cls._expectation_step_vectorized_jacob(num_points, num_clusters,
+                                                                             centroid_distances,
+                                                                             cluster_assignments)
 
             # Maximization step: Update centroid for each cluster
-            for c in range(num_clusters):
-                newcent = 0
-                clustersize = 0
-                for i in range(num_points):
-                    if assignments[i] == c:
-                        newcent = newcent + features[i, :]
-                        clustersize += 1
-                newcent = newcent / clustersize
-                centroids[c, :] = newcent
+            centroids = cls._maximization_step_vectorized_jacob(num_clusters, num_points,
+                                                                cluster_assignments,
+                                                                features, centroids)
 
             if num_changed_assignments == 0:
                 break
 
         # return cluster centroids and assignments
-        return centroids, assignments
+        return centroids, cluster_assignments
 
     def _run_vectorized(self, features: np.ndarray, num_clusters: int):
         """Run k-means algorithm to convergence.
@@ -210,7 +256,7 @@ class KMeansRunner:
         # return cluster centroids and cluster_assignments
         return centroids, cluster_assignments
 
-    def run(self, num_clusters: int, dataset: str):
+    def run(self, run_type: str, num_clusters: int, dataset: str):
         """
 
         Args:
@@ -225,22 +271,23 @@ class KMeansRunner:
             centroid_distances shape: (# points, # clusters)
         """
 
+        run_func = self.funcs[run_type]
         dataset_name = 'tcga' if dataset != 'iris' else dataset
 
         if dataset == 'iris':
-            if not self.features_iris:
+            if self.features_iris is None:
                 from sklearn.datasets import load_iris
                 self.features_iris, _ = load_iris(return_X_y=True)
                 self.logger.info(f"Dataset {dataset_name} loaded. Shape: {self.features_iris.shape}.")
-            self.run_func(features=self.features_iris, num_clusters=num_clusters)
+            run_func(features=self.features_iris, num_clusters=num_clusters)
         else:
-            if not self.features_tcga:
+            if self.features_tcga is None:
                 import pandas as pd
                 features_pd = pd.read_csv(dataset)
                 features_pd.drop('Unnamed: 0', axis=1, inplace=True)
                 self.features_tcga = features_pd.to_numpy()
                 self.logger.info(f"Dataset {dataset_name} loaded. Shape: {self.features_tcga.shape}.")
-            self.run_func(features=self.features_tcga, num_clusters=num_clusters)
+            run_func(features=self.features_tcga, num_clusters=num_clusters)
 
         # Run K-Means and save results
         # sys_path = os.path.dirname(os.path.realpath(__file__))

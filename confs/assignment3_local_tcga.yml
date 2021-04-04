@@ -5,18 +5,18 @@ simple:
       num_clusters: 10
       dataset: iris #../data/TCGA-PANCAN-HiSeq-801x20531/data_small.csv
     type: required  # required or optional
-    enabled: true  # true or false
-# My Vectorized K-Means
-vectorized:
-  - properties:
-      num_clusters: 10
-      dataset: iris #../data/TCGA-PANCAN-HiSeq-801x20531/data_small.csv
-    type: optional
-    enabled: true
+    enabled: false  # true or false
 # Jacob's Vectorized K-Means
 vectorized_jacob:
   - properties:
       num_clusters: 10
       dataset: iris # ../data/TCGA-PANCAN-HiSeq-801x20531/data_small.csv
     type: required
+    enabled: true
+# My Vectorized K-Means
+vectorized:
+  - properties:
+      num_clusters: 10
+      dataset: iris #../data/TCGA-PANCAN-HiSeq-801x20531/data_small.csv
+    type: optional
     enabled: true

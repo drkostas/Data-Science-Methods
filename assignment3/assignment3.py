@@ -23,16 +23,15 @@ def check_required(conf_type, conf_enabled, tag):
     return (conf_type == 'required' or tag != 'required_only') and conf_enabled
 
 
-def run_serial(name: str, config_key: List[Dict], tag: str) -> None:
+def run_serial(runner: KMeansRunner, kmeans_type: str, config_key: List[Dict], tag: str) -> None:
     """ Runs the KMeans serial version for the specified configuration. """
     # Initialize
-    kmeans_runner = KMeansRunner(run_type=name)
     for bench_conf in config_key:
         if check_required(bench_conf['type'], bench_conf['enabled'], tag):
             # Extract the properties
-            num_clusters, dataset, dataset_name = prepare_for_run(name, bench_conf)
+            num_clusters, dataset, dataset_name = prepare_for_run(kmeans_type, bench_conf)
             # Run K-Means
-            kmeans_runner.run(num_clusters=num_clusters, dataset=dataset)
+            runner.run(run_type=kmeans_type, num_clusters=num_clusters, dataset=dataset)
 
 
 @timeit()
@@ -53,8 +52,9 @@ def main():
     conf = Configuration(config_src=args.config_file)
     # Start the problems defined in the configuration
     # For each problem present in the config file, call the appropriate function
+    kmeans_runner = KMeansRunner()
     for config_key in conf.config_keys:
-        run_serial(name=config_key, config_key=conf.get_config(config_name=config_key), tag=conf.tag)
+        run_serial(runner=kmeans_runner, kmeans_type=config_key, config_key=conf.get_config(config_name=config_key), tag=conf.tag)
 
     main_logger.info("Assignment 3 Finished")
 
