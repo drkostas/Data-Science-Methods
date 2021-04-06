@@ -247,6 +247,10 @@ class KMeansRunner:
         return centroids
 
     @staticmethod
+    def _break_condition_vectorized(cluster_assignments: np.ndarray, previous_assignments: np.ndarray):
+        return (cluster_assignments == previous_assignments).all()
+
+    @staticmethod
     def _loop_vectorized(num_clusters: int, cluster_assignments: np.ndarray,
                          features: np.ndarray, centroids: np.ndarray):
         loop_cnt = 0
@@ -264,7 +268,7 @@ class KMeansRunner:
             centroids = KMeansRunner._maximization_step_vectorized(num_clusters, cluster_assignments,
                                                                    features, centroids)
             # Break Condition
-            if (cluster_assignments == previous_assignments).all():
+            if KMeansRunner._break_condition_vectorized(cluster_assignments, previous_assignments):
                 break
 
         # return cluster centroids and cluster_assignments
