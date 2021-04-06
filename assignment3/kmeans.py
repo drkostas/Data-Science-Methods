@@ -1,13 +1,14 @@
 import os
-from typing import Dict, Callable, Union
+from typing import Dict, IO, Union, Callable
 import numpy as np
 
-from playground import ColorizedLogger, timeit
+from playground import ColorizedLogger, profileit
 
 
 class KMeansRunner:
     logger: ColorizedLogger
     funcs: Dict
+    outputs_file: IO
     features_iris: Union[np.ndarray, None]
     features_tcga: Union[np.ndarray, None]
 
@@ -67,8 +68,35 @@ class KMeansRunner:
             centroids[c, :] = new_centroid
         return centroids
 
-    @classmethod
-    def _run_simple(cls, features: np.ndarray, num_clusters: int):
+    @staticmethod
+    def _loop_simple(num_clusters: int, num_points: int, num_features: int,
+                     cluster_assignments: np.ndarray, features: np.ndarray, centroids: np.ndarray):
+        while True:
+            # Compute distances from sample points to centroids
+            centroid_distances = KMeansRunner._compute_distances_simple(num_points, num_features,
+                                                                        num_clusters,
+                                                                        centroids, features)
+
+            # Expectation step: assign clusters
+            cluster_assignments, \
+            num_changed_assignments = KMeansRunner._expectation_step_simple(num_points,
+                                                                            num_clusters,
+                                                                            centroid_distances,
+                                                                            cluster_assignments)
+
+            # Maximization step: Update centroid for each cluster
+            centroids = KMeansRunner._maximization_step_simple(num_clusters, num_points,
+                                                               cluster_assignments, features,
+                                                               centroids)
+
+            if num_changed_assignments == 0:
+                break
+
+        # return cluster centroids and assignments
+        return centroids, cluster_assignments
+
+    @staticmethod
+    def _run_simple(features: np.ndarray, num_clusters: int):
         """Run Simple K-Means algorithm to convergence.
 
         Args:
@@ -87,24 +115,9 @@ class KMeansRunner:
         cluster_assignments = np.zeros(num_points, dtype=np.uint8)
 
         # loop until convergence
-        while True:
-            # Compute distances from sample points to centroids
-            centroid_distances = cls._compute_distances_simple(num_points, num_features, num_clusters,
-                                                               centroids, features)
-
-            # Expectation step: assign clusters
-            cluster_assignments, \
-            num_changed_assignments = cls._expectation_step_simple(num_points,
-                                                                   num_clusters,
-                                                                   centroid_distances,
-                                                                   cluster_assignments)
-
-            # Maximization step: Update centroid for each cluster
-            centroids = cls._maximization_step_simple(num_clusters, num_points,
-                                                      cluster_assignments, features, centroids)
-
-            if num_changed_assignments == 0:
-                break
+        centroids, cluster_assignments = \
+            KMeansRunner._loop_simple(num_clusters, num_points, num_features, cluster_assignments,
+                                      features, centroids)
 
         # return cluster centroids and assignments
         return centroids, cluster_assignments
@@ -159,8 +172,36 @@ class KMeansRunner:
 
         return centroids
 
-    @classmethod
-    def _run_vectorized_jacob(cls, features: np.ndarray, num_clusters: int):
+    @staticmethod
+    def _loop_vectorized_jacob(num_clusters: int, num_points: int, cluster_assignments: np.ndarray,
+                               features: np.ndarray, centroids: np.ndarray):
+        loop_cnt = 0
+        while True:
+            loop_cnt += 1
+            # Compute distances from sample points to centroids
+            centroid_distances = KMeansRunner._compute_distances_vectorized_jacob(num_points,
+                                                                                  num_clusters,
+                                                                                  centroids, features)
+
+            # Expectation step: assign clusters
+            centroid_distances, cluster_assignments, num_changed_assignments = \
+                KMeansRunner._expectation_step_vectorized_jacob(num_points, num_clusters,
+                                                                centroid_distances,
+                                                                cluster_assignments)
+
+            # Maximization step: Update centroid for each cluster
+            centroids = KMeansRunner._maximization_step_vectorized_jacob(num_clusters, num_points,
+                                                                         cluster_assignments,
+                                                                         features, centroids)
+
+            if num_changed_assignments == 0:
+                break
+
+        # return cluster centroids and assignments
+        return centroids, cluster_assignments
+
+    @staticmethod
+    def _run_vectorized_jacob(features: np.ndarray, num_clusters: int):
         """Run k-means algorithm to convergence.
 
         Args:
@@ -178,26 +219,9 @@ class KMeansRunner:
         cluster_assignments = np.zeros(num_points, dtype=np.uint8)
 
         # loop until convergence
-        loop_cnt = 0
-        while True:
-            loop_cnt += 1
-            # Compute distances from sample points to centroids
-            centroid_distances = cls._compute_distances_vectorized_jacob(num_points, num_clusters,
-                                                                         centroids, features)
-
-            # Expectation step: assign clusters
-            centroid_distances, cluster_assignments, \
-            num_changed_assignments = cls._expectation_step_vectorized_jacob(num_points, num_clusters,
-                                                                             centroid_distances,
-                                                                             cluster_assignments)
-
-            # Maximization step: Update centroid for each cluster
-            centroids = cls._maximization_step_vectorized_jacob(num_clusters, num_points,
-                                                                cluster_assignments,
-                                                                features, centroids)
-
-            if num_changed_assignments == 0:
-                break
+        centroids, cluster_assignments = \
+            KMeansRunner._loop_vectorized_jacob(num_clusters, num_points, cluster_assignments,
+                                                features, centroids)
 
         # return cluster centroids and assignments
         return centroids, cluster_assignments
@@ -222,8 +246,32 @@ class KMeansRunner:
         # USE PANDAS TO GROUP BY CLUSTER -> MEAN ???
         return centroids
 
-    @classmethod
-    def _run_vectorized(cls, features: np.ndarray, num_clusters: int):
+    @staticmethod
+    def _loop_vectorized(num_clusters: int, cluster_assignments: np.ndarray,
+                         features: np.ndarray, centroids: np.ndarray):
+        loop_cnt = 0
+        while True:
+            loop_cnt += 1
+            # Compute distances from sample points to centroids
+            # all  pair-wise _squared_ distances
+            centroid_distances = KMeansRunner._compute_distances_vectorized(centroids, features)
+
+            # Expectation step: assign clusters
+            cluster_assignments, previous_assignments = \
+                KMeansRunner._expectation_step_vectorized(centroid_distances, cluster_assignments)
+
+            # Maximization step: Update centroid for each cluster
+            centroids = KMeansRunner._maximization_step_vectorized(num_clusters, cluster_assignments,
+                                                                   features, centroids)
+            # Break Condition
+            if (cluster_assignments == previous_assignments).all():
+                break
+
+        # return cluster centroids and cluster_assignments
+        return centroids, cluster_assignments
+
+    @staticmethod
+    def _run_vectorized(features: np.ndarray, num_clusters: int):
         """Run k-means algorithm to convergence.
 
             This is the Lloyd's algorithm [2] which consists of alternating expectation
@@ -252,28 +300,29 @@ class KMeansRunner:
         centroids = features[centroid_ids, :]
         cluster_assignments = np.zeros(num_points, dtype=np.uint8)
         # Loop until convergence
-        loop_cnt = 0
-        while True:
-            loop_cnt += 1
-            # Compute distances from sample points to centroids
-            # all  pair-wise _squared_ distances
-            centroid_distances = cls._compute_distances_vectorized(centroids, features)
-
-            # Expectation step: assign clusters
-            cluster_assignments, \
-            previous_assignments = cls._expectation_step_vectorized(centroid_distances,
-                                                                    cluster_assignments)
-
-            # Maximization step: Update centroid for each cluster
-            centroids = cls._maximization_step_vectorized(num_clusters, cluster_assignments,
-                                                          features, centroids)
-            # USE PANDAS TO GROUP BY CLUSTER -> MEAN ???
-            # Break Condition
-            if (cluster_assignments == previous_assignments).all():
-                break
+        centroids, cluster_assignments = \
+            KMeansRunner._loop_vectorized(num_clusters, cluster_assignments, features, centroids)
 
         # return cluster centroids and cluster_assignments
         return centroids, cluster_assignments
+
+    def _load_dataset(self, dataset_name: str, dataset: str):
+        if dataset == 'iris':
+            if self.features_iris is None:
+                from sklearn.datasets import load_iris
+                self.features_iris, _ = load_iris(return_X_y=True)
+                self.logger.info(
+                    f"Dataset {dataset_name} loaded. Shape: {self.features_iris.shape}.")
+            return self.features_iris
+        else:
+            if self.features_tcga is None:
+                import pandas as pd
+                features_pd = pd.read_csv(dataset)
+                features_pd.drop('Unnamed: 0', axis=1, inplace=True)
+                self.features_tcga = features_pd.to_numpy()
+                self.logger.info(
+                    f"Dataset {dataset_name} loaded. Shape: {self.features_tcga.shape}.")
+            return self.features_tcga
 
     def run(self, run_type: str, num_clusters: int, dataset: str):
         """
@@ -293,34 +342,33 @@ class KMeansRunner:
         run_func = self.funcs[run_type]
         dataset_name = 'tcga' if dataset != 'iris' else dataset
 
-        if dataset == 'iris':
-            if self.features_iris is None:
-                from sklearn.datasets import load_iris
-                self.features_iris, _ = load_iris(return_X_y=True)
-                self.logger.info(f"Dataset {dataset_name} loaded. Shape: {self.features_iris.shape}.")
-            centroids, assignments = run_func(features=self.features_iris, num_clusters=num_clusters)
-        else:
-            if self.features_tcga is None:
-                import pandas as pd
-                features_pd = pd.read_csv(dataset)
-                features_pd.drop('Unnamed: 0', axis=1, inplace=True)
-                self.features_tcga = features_pd.to_numpy()
-                self.logger.info(f"Dataset {dataset_name} loaded. Shape: {self.features_tcga.shape}.")
-            centroids, assignments = run_func(features=self.features_tcga, num_clusters=num_clusters)
-
         # Run K-Means and save results
         sys_path = os.path.dirname(os.path.realpath(__file__))
         output_file_name = f'assignment3_{dataset_name}_{run_type}.txt'
-        output_file_path = os.path.join(sys_path, '..', 'outputs')
-        if not os.path.exists(output_file_path):
-            os.makedirs(output_file_path)
-        output_file_path = os.path.join(output_file_path, output_file_name)
-        with open(output_file_path, 'w') as f:
-            f.write(f'K-Means {run_type} version for the {dataset_name} dataset '
-                    f'with {num_clusters} clusters .\n')
-            self.logger.info(f"Final Cluster Assignments: \n{assignments}")
+        profiler_file_name = f'assignment3_{dataset_name}_{run_type}.o'
+        output_base_path = os.path.join(sys_path, '..', 'outputs')
+        if not os.path.exists(output_base_path):
+            os.makedirs(output_base_path)
+        profiler_file_path = os.path.join(output_base_path, profiler_file_name)
+        output_file_path = os.path.join(output_base_path, output_file_name)
+        with open(output_file_path, 'w') as self.outputs_file:
+            self.outputs_file.write(f'K-Means {run_type} version for the {dataset_name} dataset '
+                                    f'with {num_clusters} clusters .\n')
+
+            # Load Dataset
+            features = self._load_dataset(dataset_name, dataset)
+
+            # Run Kmeans
+            k_words = ['kmeans.py', 'ncalls']
+            custom_print = f'Profiling `{run_type}` K-Means for the `{dataset_name}` dataset: '
+            with profileit(file=self.outputs_file, profiler_output=profiler_file_path,
+                           custom_print=custom_print,
+                           keep_only_these=k_words):
+                centroids, assignments = run_func(features=features, num_clusters=num_clusters)
+
             # Save results
-            f.write(f'Assignments:\n')
-            f.write(f'{assignments.tolist()}\n')
-            f.write(f'Centroids:\n')
-            f.write(f'{centroids.tolist()}')
+            self.logger.info(f"Final Cluster Assignments: \n{assignments}")
+            self.outputs_file.write(f'Assignments:\n')
+            self.outputs_file.write(f'{assignments.tolist()}\n')
+            self.outputs_file.write(f'Centroids:\n')
+            self.outputs_file.write(f'{centroids.tolist()}')
