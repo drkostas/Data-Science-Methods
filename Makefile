@@ -1,7 +1,7 @@
 # Makefile for the dse512_playground module
 
 SHELL=/bin/bash
-PYTHON_VERSION=3.8
+PYTHON_VERSION=3.7
 
 # You can use either venv (virtualenv) or conda env by specifying the correct argument (server=<prod, circleci, local>)
 ifeq ($(server),prod)

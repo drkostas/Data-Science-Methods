@@ -1,5 +1,5 @@
 import os
-from typing import Dict, IO, Union, Callable
+from typing import Dict, IO, Union
 import numpy as np
 
 from playground import ColorizedLogger, profileit
@@ -13,9 +13,9 @@ class KMeansRunner:
     features_tcga: Union[np.ndarray, None]
 
     def __init__(self):
-        self.funcs = {'simple': self._run_simple,
-                      'vectorized': self._run_vectorized,
-                      'vectorized_jacob': self._run_vectorized_jacob}
+        self.funcs = {'simple': KMeansRunner.run_simple,
+                      'vectorized': KMeansRunner.run_vectorized,
+                      'vectorized_jacob': KMeansRunner.run_vectorized_jacob}
         self.features_iris = None
         self.features_tcga = None
         self.logger = ColorizedLogger(f'KMeans', 'green')
@@ -96,7 +96,7 @@ class KMeansRunner:
         return centroids, cluster_assignments
 
     @staticmethod
-    def _run_simple(features: np.ndarray, num_clusters: int):
+    def run_simple(features: np.ndarray, num_clusters: int):
         """Run Simple K-Means algorithm to convergence.
 
         Args:
@@ -201,7 +201,7 @@ class KMeansRunner:
         return centroids, cluster_assignments
 
     @staticmethod
-    def _run_vectorized_jacob(features: np.ndarray, num_clusters: int):
+    def run_vectorized_jacob(features: np.ndarray, num_clusters: int):
         """Run k-means algorithm to convergence.
 
         Args:
@@ -275,7 +275,7 @@ class KMeansRunner:
         return centroids, cluster_assignments
 
     @staticmethod
-    def _run_vectorized(features: np.ndarray, num_clusters: int):
+    def run_vectorized(features: np.ndarray, num_clusters: int):
         """Run k-means algorithm to convergence.
 
             This is the Lloyd's algorithm [2] which consists of alternating expectation
@@ -343,10 +343,11 @@ class KMeansRunner:
             centroid_distances shape: (# points, # clusters)
         """
 
+        # Setup func to run and dataset to use
         run_func = self.funcs[run_type]
         dataset_name = 'tcga' if dataset != 'iris' else dataset
 
-        # Run K-Means and save results
+        # Prepare output folders and names
         sys_path = os.path.dirname(os.path.realpath(__file__))
         output_file_name = f'assignment3_{dataset_name}_{run_type}.txt'
         profiler_file_name = f'assignment3_{dataset_name}_{run_type}.o'
@@ -355,15 +356,17 @@ class KMeansRunner:
             os.makedirs(output_base_path)
         profiler_file_path = os.path.join(output_base_path, profiler_file_name)
         output_file_path = os.path.join(output_base_path, output_file_name)
+
+        # Open results output file
         with open(output_file_path, 'w') as self.outputs_file:
             self.outputs_file.write(f'K-Means {run_type} version for the {dataset_name} dataset '
                                     f'with {num_clusters} clusters .\n')
 
-            # Load Dataset
+            # Load Dataset if not already loaded
             features = self._load_dataset(dataset_name, dataset)
 
             # Run Kmeans
-            k_words = ['kmeans.py', 'ncalls']
+            k_words = ['kmeans.py', 'ncalls']  # Include only pstats that contain these words
             custom_print = f'Profiling `{run_type}` K-Means for the `{dataset_name}` dataset: '
             with profileit(file=self.outputs_file, profiler_output=profiler_file_path,
                            custom_print=custom_print,
