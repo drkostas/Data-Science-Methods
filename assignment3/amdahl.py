@@ -1,3 +1,6 @@
+from matplotlib import pyplot as plt
+import matplotlib
+
 def amdahls_law(p, s):
     """Speedup relative to proportion parallel
     Amdahl's Law gives an idealized speedup we
@@ -13,26 +16,27 @@ def amdahls_law(p, s):
     return 1 / ((1-p) + p/s)
 
 
-print("\n Amdahl for p=0.3")
-print(amdahls_law(0.3, 1))
-print(amdahls_law(0.3, 2))
-print(amdahls_law(0.3, 3))
-print(amdahls_law(0.3, 4))
+def distances_plot(p):
+    x = []
+    y = []
+    for s in range(1, 65537, 10):
+        x.append(s)
+        y.append(amdahls_law(p, s))
+    print(y[-1])
+    fig, ax = plt.subplots(1, 1)
+    ax.plot(x, y, label=f'Theoretical Speedup for P={p*100}%', color='mediumseagreen')
+    ax.axhline(y=130.129, label=f'Jacob\'s Vectorized', color='dodgerblue')
+    ax.axhline(y=223.950, label=f'My Vectorized', color='orangered')
+    ax.set_title('Amdahl\'s Law for Centroid Distances')
+    ax.set_xlabel('Number of Processors (P) in log scale')
+    ax.set_ylabel('SpeedUp')
+    ax.legend(loc='upper left')
+    ax.set_xscale('log')
+    ax.set_xticks([16, 64, 256, 1024, 4096, 16384, 65536])
+    ax.get_xaxis().set_major_formatter(matplotlib.ticker.ScalarFormatter())
+    plt.show()
+    fig.savefig('../outputs/final/assignment3/results/question2.png')
+    plt.clf()
 
-print("\n Amdahl for p=0.5")
-print(amdahls_law(0.5, 1))
-print(amdahls_law(0.5, 2))
-print(amdahls_law(0.5, 3))
-print(amdahls_law(0.5, 4))
 
-print("\n Amdahl for p=0.7")
-print(amdahls_law(0.7, 1))
-print(amdahls_law(0.7, 2))
-print(amdahls_law(0.7, 3))
-print(amdahls_law(0.7, 4))
-
-print("\n Amdahl for p=0.9")
-print(amdahls_law(0.9, 1))
-print(amdahls_law(0.9, 2))
-print(amdahls_law(0.9, 3))
-print(amdahls_law(0.9, 4))
+distances_plot(p=0.9982)
