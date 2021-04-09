@@ -1,37 +1,37 @@
 import os
 import numpy as np
-from numba import jit
+from numba import jit, prange
 
 from playground import profileit
 from kmeans import KMeansRunner
 
 
-@jit(nopython=True)
+@jit(nopython=True, parallel=True)
 def _compute_distances_vectorized_jacob(num_points: int, num_clusters: int,
                                         centroids: np.ndarray, features: np.ndarray):
     # all  pair-wise _squared_ distances
     centroid_distances = np.zeros((num_points, num_clusters))
-    for i in range(num_points):
+    for i in prange(num_points):
         xi = features[i, :]
-        for c in range(num_clusters):
+        for c in prange(num_clusters):
             cc = centroids[c, :]
             dist = np.sum((xi - cc) ** 2)
             centroid_distances[i, c] = dist
     return centroid_distances
 
 
-@jit(nopython=True)
+@jit(nopython=True, parallel=True)
 def _expectation_step_vectorized_jacob(num_points: int, num_clusters: int,
                                        centroid_distances: np.ndarray,
                                        cluster_assignments: np.ndarray):
     num_changed_assignments = 0
     # claim: we can just do the following:
     # assignments = np.argmin(centroid_distances, axis=1)
-    for i in range(num_points):
+    for i in prange(num_points):
         # pick closest cluster
         cmin = 0
         mindist = np.inf
-        for c in range(num_clusters):
+        for c in prange(num_clusters):
             if centroid_distances[i, c] < mindist:
                 cmin = c
                 mindist = centroid_distances[i, c]
@@ -42,14 +42,14 @@ def _expectation_step_vectorized_jacob(num_points: int, num_clusters: int,
     return centroid_distances, cluster_assignments, num_changed_assignments
 
 
-@jit(nopython=True)
+@jit(nopython=True, parallel=True)
 def _maximization_step_vectorized_jacob(num_clusters: int, num_points: int,
                                         cluster_assignments: np.ndarray,
                                         features: np.ndarray, centroids: np.ndarray):
-    for c in range(num_clusters):
+    for c in prange(num_clusters):
         new_centroid = np.ones(1, )
         cluster_size = 0
-        for i in range(num_points):
+        for i in prange(num_points):
             if cluster_assignments[i] == c:
                 new_centroid = new_centroid + features[i, :]
                 cluster_size += 1

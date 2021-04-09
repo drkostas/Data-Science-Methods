@@ -3,30 +3,30 @@ tag: all  # required_only or all
 simple:
   - properties:
       profiling: true
-      num_clusters: 10
-      dataset: iris #../data/TCGA-PANCAN-HiSeq-801x20531/data_small.csv
+      num_clusters: 4
+      dataset: ../data/TCGA-PANCAN-HiSeq-801x20531/data_small.csv
     type: required  # required or optional
-    enabled: false  # true or false
+    enabled: true  # true or false
 # Jacob's Vectorized K-Means
 vectorized_jacob:
   - properties:
       profiling: true
-      num_clusters: 10
-      dataset: iris #../data/TCGA-PANCAN-HiSeq-801x20531/data_small.csv
+      num_clusters: 4
+      dataset: ../data/TCGA-PANCAN-HiSeq-801x20531/data_small.csv
     type: required
-    enabled: false
+    enabled: true
   - properties:
       numba: true
       profiling: true
-      num_clusters: 10
-      dataset: iris #../data/TCGA-PANCAN-HiSeq-801x20531/data_small.csv
+      num_clusters: 4
+      dataset: ../data/TCGA-PANCAN-HiSeq-801x20531/data_small.csv
     type: required
     enabled: true
 # My Vectorized K-Means
 vectorized:
   - properties:
       profiling: true
-      num_clusters: 10
-      dataset: iris #../data/TCGA-PANCAN-HiSeq-801x20531/data_small.csv
+      num_clusters: 4
+      dataset: ../data/TCGA-PANCAN-HiSeq-801x20531/data_small.csv
     type: optional
-    enabled: false
+    enabled: true

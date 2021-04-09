@@ -18,14 +18,23 @@ class profileit(ContextDecorator):
     keep_only_these: List
     fraction: float
     skip: bool
+    profiler_output: str
     file: IO
 
     def __init__(self, **kwargs):
-        """Decorator/ContextManager for counting the execution times of functions
+        """Decorator/ContextManager for profiling functions and code blocks
 
         Args:
-            custom_print: Custom print string which can be formatted using `func_name`, `args`,
-                          and `duration`. Use {0}, {1}, .. to reference the first, second, ... argument
+            custom_print: Custom print string. When used as decorator it can also be formatted using
+                          `func_name`, `args`, and {0}, {1}, .. to reference the function's
+                          first, second, ... argument.
+            sort_by: pstats sorting column
+            profiler_output: Filepath where to save the profiling results (.o file)
+            keep_only_these: List of strings - grep on the profiling output and print only lines
+                             containing any of these strings
+            fraction: pstats.print_stats() fraction argument
+            skip: If True, don't time this time. Suitable when inside loops
+            file: Write the timing output to a file too
         """
 
         self.profiler = cProfile.Profile()
@@ -55,18 +64,17 @@ class profileit(ContextDecorator):
         return profiled
 
     def __enter__(self, *args, **kwargs):
-        if hasattr(self, 'skip'):
-            if not self.skip:
-                self.profiler.enable()
+        if not self.skip:
+            self.profiler.enable()
         return self
 
     def __exit__(self, type, value, traceback):
         if self.skip:
             return
-        else:
-            self.profiler.disable()
-            ps = pstats.Stats(self.profiler, stream=self.stream).sort_stats(self.sort_by)
-            ps.print_stats(self.fraction)
+
+        self.profiler.disable()
+        ps = pstats.Stats(self.profiler, stream=self.stream).sort_stats(self.sort_by)
+        ps.print_stats(self.fraction)
 
         # If used as a decorator
         if hasattr(self, 'func_name'):

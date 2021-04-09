@@ -14,12 +14,18 @@ class timeit(ContextDecorator):
     file: IO
 
     def __init__(self, **kwargs):
-        """Decorator/ContextManager for counting the execution times of functions
+        """Decorator/ContextManager for counting the execution times of functions and code blocks
 
         Args:
-            custom_print: Custom print string which can be formatted using `func_name`, `args`,
-                          and `duration`. Use {0}, {1}, .. to reference the first, second, ... argument
+            custom_print: Custom print string Use {duration} to reference the running time.
+                          When used as decorator it can also be formatted using
+                          `func_name`, `args`, and {0}, {1}, .. to reference the function's
+                          first, second, ... argument.
+            skip: If True, don't time this time. Suitable when inside loops
+            file: Write the timing output to a file too
         """
+
+        self.skip = False
         self.__dict__.update(kwargs)
 
     def __call__(self, func: Callable):
@@ -41,10 +47,14 @@ class timeit(ContextDecorator):
         return timed
 
     def __enter__(self, *args, **kwargs):
-        self.ts = time()
+        if not self.skip:
+            self.ts = time()
         return self
 
     def __exit__(self, type, value, traceback):
+        if self.skip:
+            return
+
         self.te = time()
         total = self.te - self.ts
         if hasattr(self, 'func_name'):

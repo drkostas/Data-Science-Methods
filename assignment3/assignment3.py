@@ -38,6 +38,7 @@ def run_serial(runner: KMeansRunner, kmeans_type: str, config_key: List[Dict], t
             num_clusters, dataset, dataset_name, with_numba = prepare_for_run(kmeans_type, conf)
             # Run K-Means
             if with_numba:
+                kmeans_type += '_numba'
                 run_with_numba(kmeans_obj=runner, run_type=kmeans_type, num_clusters=num_clusters,
                                dataset=dataset)
             else:
