@@ -2,31 +2,27 @@ tag: all  # required_only or all
 # Jacob's Simple K-Means
 simple:
   - properties:
-      profiling: true
       num_clusters: 4
-      dataset: ../data/TCGA-PANCAN-HiSeq-801x20531/data_small.csv
+      dataset: ../data/TCGA-PANCAN-HiSeq-801x20531/data.csv
     type: required  # required or optional
     enabled: true  # true or false
 # Jacob's Vectorized K-Means
 vectorized_jacob:
   - properties:
-      profiling: true
       num_clusters: 4
-      dataset: ../data/TCGA-PANCAN-HiSeq-801x20531/data_small.csv
+      dataset: ../data/TCGA-PANCAN-HiSeq-801x20531/data.csv
     type: required
     enabled: true
   - properties:
       numba: true
-      profiling: true
       num_clusters: 4
-      dataset: ../data/TCGA-PANCAN-HiSeq-801x20531/data_small.csv
+      dataset: ../data/TCGA-PANCAN-HiSeq-801x20531/data.csv
     type: required
     enabled: true
 # My Vectorized K-Means
 vectorized:
   - properties:
-      profiling: true
       num_clusters: 4
-      dataset: ../data/TCGA-PANCAN-HiSeq-801x20531/data_small.csv
+      dataset: ../data/TCGA-PANCAN-HiSeq-801x20531/data.csv
     type: optional
     enabled: true
