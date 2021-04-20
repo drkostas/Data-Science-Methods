@@ -1,0 +1,13 @@
+tag: all  # required_only or all
+# Jacob's Simple K-Means
+simple:
+  - properties:
+      num_processesL:
+        - 1
+        - 2
+        - 4
+        - 8
+      epochs: 30
+      dataset: mnist
+    type: required  # required or optional
+    enabled: true  # true or false
