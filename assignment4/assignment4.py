@@ -6,7 +6,6 @@ from playground.main import get_args
 from playground import ColorizedLogger, Configuration, timeit
 from cnn_runner import CnnRunner
 
-
 # Create loggers with different colors to use in each problem
 main_logger = ColorizedLogger('Main', 'yellow')
 
@@ -15,8 +14,9 @@ def check_required(conf_type, conf_enabled, tag):
     return (conf_type == 'required' or tag != 'required_only') and conf_enabled
 
 
-def run(config: List[Dict], tag: str) -> None:
+def run(run_type: str, config: List[Dict], tag: str) -> None:
     """ Runs the KMeans serial version for the specified configuration. """
+    data_parallel = (run_type == 'data_parallel')
     # Initialize
     for conf in config:
         if check_required(conf['type'], conf['enabled'], tag):
@@ -28,7 +28,8 @@ def run(config: List[Dict], tag: str) -> None:
                            learning_rate=conf_props['learning_rate'],
                            momentum=conf_props['momentum'])
             for num_processes in conf_props['num_processes']:
-                cr.run(num_processes=num_processes)
+                cr.run(num_processes=num_processes, data_parallel=data_parallel)
+
 
 @timeit()
 def main():
@@ -49,8 +50,7 @@ def main():
     # Start the problems defined in the configuration
     # For each problem present in the config file, call the appropriate function
     for config_key in conf.config_keys:
-        run(config=conf.get_config(config_name=config_key), tag=conf.tag)
-        pass
+        run(run_type=config_key, config=conf.get_config(config_name=config_key), tag=conf.tag)
 
     main_logger.info("Assignment 4 Finished")
 
