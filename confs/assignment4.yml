@@ -6,10 +6,12 @@ non_parallel:
 #        - 2
 #        - 4
 #        - 8
-      epochs: 10
-      batch_size: 64
+      epochs: 3
+      batch_size_train: 64
+      batch_size_test: 1000
       learning_rate: 0.01
       momentum: 0.5
+      test_before_train: true
       dataset:
         name: mnist
         save_path: ../data/mnist

@@ -24,9 +24,11 @@ def run(run_type: str, config: List[Dict], tag: str) -> None:
             # Run
             cr = CnnRunner(dataset=conf_props['dataset'],
                            epochs=conf_props['epochs'],
-                           batch_size=conf_props['batch_size'],
+                           batch_size_train=conf_props['batch_size_train'],
+                           batch_size_test=conf_props['batch_size_test'],
                            learning_rate=conf_props['learning_rate'],
-                           momentum=conf_props['momentum'])
+                           momentum=conf_props['momentum'],
+                           test_before_train=conf_props['test_before_train'])
             for num_processes in conf_props['num_processes']:
                 cr.run(num_processes=num_processes, data_parallel=data_parallel)
 

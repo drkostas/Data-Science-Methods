@@ -45,15 +45,19 @@ class CnnRunner:
     outputs_file: IO
     dataset: Dict
     epochs: int
-    batch_size: int
+    batch_size_train: int
+    batch_size_test: int
+    test_before_train: bool
 
-    def __init__(self, dataset: Dict, epochs: int, batch_size: int, learning_rate: float,
-                 momentum: float = 0, seed: int = 1):
+    def __init__(self, dataset: Dict, epochs: int, batch_size_train: int, batch_size_test: int,
+                 learning_rate: float, test_before_train: bool, momentum: float = 0, seed: int = 1):
         # Set the object variables
         self.logger = ColorizedLogger(f'CnnRunner', 'green')
         self.dataset = dataset
         self.epochs = epochs
-        self.batch_size = batch_size
+        self.batch_size_train = batch_size_train
+        self.batch_size_test = batch_size_test
+        self.test_before_train = test_before_train
         # Configure torch variables
         backends.cudnn.enabled = False
         torch.manual_seed(seed)
@@ -78,23 +82,26 @@ class CnnRunner:
                                          transform=transformation)
             mnist_test = datasets.MNIST(self.dataset['save_path'],
                                         train=False,
-                                        download=True)
+                                        download=True,
+                                        transform=transformation)
         else:
-            raise Exception("Dataset not yet supported!")
+            raise NotImplemented("Dataset not yet supported!")
         self.logger.info(f"{self.dataset['name'].capitalize()} dataset loaded successfully.")
 
         return mnist_train, mnist_test
 
     def print_train_results(self, epoch_losses, iter_losses, epoch_times):
-        self.logger.info(f"epoch_losses (len {len(epoch_losses)}):\n{epoch_losses}")
-        self.logger.info(f"iter_losses (len {len(iter_losses)}):\n{iter_losses}")
-        self.logger.info(f"epoch_times (len {len(epoch_times)}):"
-                         f"\n{epoch_times}")
+        self.logger.info(f"Epoch Losses (len {len(epoch_losses)}):\n{epoch_losses}",
+                         color="magenta")
+        self.logger.info(f"Mini Batch Losses (len {len(iter_losses)}):\n{iter_losses}",
+                         color="magenta")
+        self.logger.info(f"Epoch Elapsed Timed (len {len(epoch_times)}):\n{epoch_times}",
+                         color="magenta")
 
     def print_test_results(self, test_loss, correct, total, percent_correct):
-        self.logger.info(f"test_loss: {test_loss}")
-        self.logger.info(f"correct/total : {correct}/{total}")
-        self.logger.info(f"percent_correct: {percent_correct:.2f}%")
+        self.logger.info(f"Test Loss: {test_loss}", color="blue")
+        self.logger.info(f"Correct/Total : {correct}/{total}", color="blue")
+        self.logger.info(f"Accuracy: {percent_correct:.2f}%", color="blue")
 
     def train_non_parallel(self, train_loader):
         # TODO: Reset model grads because Im using same instance for training on different N processors
@@ -148,26 +155,33 @@ class CnnRunner:
 
         return test_loss, correct, total, percent_correct
 
-    def run_non_parallel(self, mnist_train, num_processes: int):
+    def run_non_parallel(self, mnist_train, mnist_test, num_processes: int):
         self.logger.info("Non-parallel mode requested..")
 
+        # Create a Train Loader
         train_loader = torch.utils.data.DataLoader(mnist_train,
-                                                   batch_size=self.batch_size,
+                                                   batch_size=self.batch_size_train,
                                                    shuffle=True,
                                                    num_workers=num_processes)
+        test_loader = torch.utils.data.DataLoader(mnist_test,
+                                                  batch_size=self.batch_size_test,
+                                                  shuffle=True,
+                                                  num_workers=num_processes)
+
         # Test with randomly initialize parameters
-        test_loss, correct, total, percent_correct = self.test_non_parallel(train_loader)
-        self.logger.info("Randomly Initialized params testing:")
-        self.print_test_results(test_loss, correct, total, percent_correct)
+        if self.test_before_train:
+            test_loss, correct, total, percent_correct = self.test_non_parallel(test_loader)
+            self.logger.info("Randomly Initialized params testing:", color="blue")
+            self.print_test_results(test_loss, correct, total, percent_correct)
 
         # Training
         epoch_losses, iter_losses, epoch_times = self.train_non_parallel(train_loader)
-        self.logger.info("Training Finished! Results:")
+        self.logger.info("Training Finished! Results:", color="magenta")
         self.print_train_results(epoch_losses, iter_losses, epoch_times)
 
         # Testing
-        test_loss, correct, total, percent_correct = self.test_non_parallel(train_loader)
-        self.logger.info("Testing Finished! Results:")
+        test_loss, correct, total, percent_correct = self.test_non_parallel(test_loader)
+        self.logger.info("Testing Finished! Results:", color="blue")
         self.print_test_results(test_loss, correct, total, percent_correct)
 
         return epoch_losses, iter_losses, epoch_times, test_loss, correct, total, percent_correct
@@ -197,7 +211,7 @@ class CnnRunner:
             self.run_data_parallel(mnist_train, num_processes)
         else:
             epoch_losses, iter_losses, epoch_times, test_loss, correct, total, percent_correct = \
-                self.run_non_parallel(mnist_train, num_processes)
+                self.run_non_parallel(mnist_train, mnist_test, num_processes)
 
         return
         # Prepare output folders and names
