@@ -90,7 +90,9 @@ class CnnRunner:
 
         return mnist_train, mnist_test
 
-    def print_train_results(self, epoch_losses, iter_losses, epoch_times):
+    def print_train_results(self, epoch_accuracies, epoch_losses, iter_losses, epoch_times):
+        self.logger.info(f"Epoch Accuracies (len {len(epoch_accuracies)}):\n{epoch_accuracies}",
+                         color="magenta")
         self.logger.info(f"Epoch Losses (len {len(epoch_losses)}):\n{epoch_losses}",
                          color="magenta")
         self.logger.info(f"Mini Batch Losses (len {len(iter_losses)}):\n{iter_losses}",
@@ -101,59 +103,65 @@ class CnnRunner:
     def print_test_results(self, test_loss, correct, total, percent_correct):
         self.logger.info(f"Test Loss: {test_loss}", color="blue")
         self.logger.info(f"Correct/Total : {correct}/{total}", color="blue")
-        self.logger.info(f"Accuracy: {percent_correct:.2f}%", color="blue")
+        self.logger.info(f"Accuracy: {100*percent_correct:.2f}%", color="blue")
 
     def train_non_parallel(self, train_loader):
-        # TODO: Reset model grads because Im using same instance for training on different N processors
-        self.my_model.train()
+        # TODO: Check if grads reset
+        size_train_dataset = len(train_loader.dataset)
         iter_losses = []
         epoch_losses = []
+        epoch_accuracies = []
         epoch_times = []
 
+        self.my_model.train()
         iter_epochs = tqdm(range(self.epochs), desc='Training Epochs')
         for _ in iter_epochs:
             timeit_ = timeit(internal_only=True)
             epoch_loss = 0.0
+            correct = 0
             num_mini_batches = 0
             with timeit_:
-                # iter_mini_batches = tqdm(enumerate(train_loader), desc='Mini Batches', leave=False)
                 iter_mini_batches = enumerate(train_loader)
                 for num_mini_batches, (X, Y) in iter_mini_batches:
                     self.optimizer.zero_grad()
                     pred = self.my_model(X)
+                    pred_val = pred.data.max(1, keepdim=True)[1]
+                    correct += pred_val.eq(Y.data.view_as(pred_val)).sum().item()
                     loss = self.loss_function(pred, Y)
                     iter_loss = loss.item()
                     iter_losses.append(iter_loss)
-                    # iter_mini_batches.set_postfix(iter_loss=iter_loss)
                     epoch_loss += iter_loss
                     loss.backward()
                     self.optimizer.step()
 
             epoch_loss /= (num_mini_batches + 1)
             epoch_losses.append(epoch_loss)
+            epoch_accuracy = correct / size_train_dataset
+            epoch_accuracies.append(epoch_accuracy)
             epoch_time = timeit_.total
             epoch_times.append(epoch_time)
-            iter_epochs.set_postfix(epoch_loss=epoch_loss, epoch_time=epoch_time)
+            iter_epochs.set_postfix(epoch_accuracy=epoch_accuracy, epoch_loss=epoch_loss,
+                                    epoch_time=epoch_time)
 
-        return epoch_losses, iter_losses, epoch_times
+        return epoch_accuracies, epoch_losses, iter_losses, epoch_times
 
     def test_non_parallel(self, test_loader):
         self.my_model.eval()
-        test_loss = 0
+        test_loss = 0.0
         correct = 0
         with torch.no_grad():
             iter_mini_batches = tqdm(enumerate(test_loader), desc='Testing', leave=False)
             for num_mini_batches, (X, Y) in iter_mini_batches:
-                pred_output = self.my_model(X)
-                test_loss += self.loss_function(pred_output, Y)
-                pred = pred_output.data.max(1, keepdim=True)[1]
-                correct += pred.eq(Y.data.view_as(pred)).sum()
+                pred = self.my_model(X)
+                test_loss += self.loss_function(pred, Y)
+                pred_val = pred.data.max(1, keepdim=True)[1]
+                correct += pred_val.eq(Y.data.view_as(pred_val)).sum()
                 iter_mini_batches.set_postfix(test_loss_accum=test_loss)
         test_loss /= len(test_loader.dataset)
-        total = len(test_loader.dataset)
-        percent_correct = 100. * correct / len(test_loader.dataset)
+        size_test_dataset = len(test_loader.dataset)
+        accuracy = correct / size_test_dataset
 
-        return test_loss, correct, total, percent_correct
+        return test_loss, correct, size_test_dataset, accuracy
 
     def run_non_parallel(self, mnist_train, mnist_test, num_processes: int):
         self.logger.info("Non-parallel mode requested..")
@@ -175,16 +183,18 @@ class CnnRunner:
             self.print_test_results(test_loss, correct, total, percent_correct)
 
         # Training
-        epoch_losses, iter_losses, epoch_times = self.train_non_parallel(train_loader)
+        epoch_accuracies, epoch_losses, iter_losses, epoch_times = \
+            self.train_non_parallel(train_loader)
         self.logger.info("Training Finished! Results:", color="magenta")
-        self.print_train_results(epoch_losses, iter_losses, epoch_times)
+        self.print_train_results(epoch_accuracies, epoch_losses, iter_losses, epoch_times)
 
         # Testing
         test_loss, correct, total, percent_correct = self.test_non_parallel(test_loader)
         self.logger.info("Testing Finished! Results:", color="blue")
         self.print_test_results(test_loss, correct, total, percent_correct)
 
-        return epoch_losses, iter_losses, epoch_times, test_loss, correct, total, percent_correct
+        return epoch_accuracies, epoch_losses, iter_losses, epoch_times, \
+            test_loss, correct, total, percent_correct
 
     def run_data_parallel(self, mnist_train, num_processes: int):
         self.logger.info("Data parallel mode requested..")
@@ -210,7 +220,8 @@ class CnnRunner:
         if data_parallel:
             self.run_data_parallel(mnist_train, num_processes)
         else:
-            epoch_losses, iter_losses, epoch_times, test_loss, correct, total, percent_correct = \
+            epoch_accuracies, epoch_losses, iter_losses, epoch_times, \
+            test_loss, correct, total, percent_correct = \
                 self.run_non_parallel(mnist_train, mnist_test, num_processes)
 
         return
