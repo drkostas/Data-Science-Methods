@@ -1,5 +1,6 @@
 import os
 from typing import Dict, IO, Union
+from tqdm import tqdm
 # Torch & Torch Vision
 import torch
 from torch import nn, optim, backends
@@ -26,7 +27,6 @@ class LeNet5(torch.nn.Module):
         self.linear_2 = nn.Linear(84, num_classes)
 
     def forward(self, input_):
-        print(input_.size())
         cnn_step = F.avg_pool2d(F.relu(self.conv_1(input_)),
                                 kernel_size=(2, 2), stride=2)
         cnn_step = F.avg_pool2d(F.relu(self.conv_2(cnn_step)),
@@ -59,7 +59,7 @@ class CnnRunner:
         torch.manual_seed(seed)
         # Create the training modules
         self.my_model = LeNet5(num_classes=10)
-        print(self.my_model)
+        self.logger.info(f"Model Architecture:\n{self.my_model}")
         self.optimizer = optim.SGD(self.my_model.parameters(),
                                    lr=learning_rate, momentum=momentum)
         self.loss_function = nn.CrossEntropyLoss()
@@ -86,26 +86,49 @@ class CnnRunner:
         return mnist_train, mnist_test
 
     def run_non_parallel(self, mnist_train, num_processes: int):
+        self.logger.info("Non-parallel mode requested..")
         # TODO: Fix Error "Calculated padded input size per channel: (4 x 4). Kernel size: (5 x 5).
         #  Kernel size can't be greater than actual input size"
         train_loader = torch.utils.data.DataLoader(mnist_train,
                                                    batch_size=self.batch_size,
                                                    shuffle=True,
                                                    num_workers=num_processes)
-        for epoch in range(self.epochs):
-            for X, Y in train_loader:
+        iter_losses = []
+        epoch_losses = []
+        elapsed_times = []
+
+        iter_epochs = tqdm(range(self.epochs), desc='Epochs')
+        for _ in iter_epochs:
+            epoch_loss = 0.0
+            num_mini_batches = 0
+            # iter_mini_batches = tqdm(enumerate(train_loader), desc='Mini Batches', leave=False)
+            iter_mini_batches = enumerate(train_loader)
+            for num_mini_batches, (X, Y) in iter_mini_batches:
                 self.optimizer.zero_grad()
                 pred = self.my_model(X)
                 loss = self.loss_function(pred, Y)
+                iter_loss = loss.item()
+                iter_losses.append(iter_loss)
+                # iter_mini_batches.set_postfix(iter_loss=iter_loss)
+                epoch_loss += iter_loss
                 loss.backward()
                 self.optimizer.step()
 
-    def run_data_parallel(self,  mnist_train, num_processes: int):
+            epoch_loss /= (num_mini_batches + 1)
+            iter_epochs.set_postfix(epoch_loss=epoch_loss)
+            epoch_losses.append(epoch_loss)
+
+        self.logger.info("Training Finished!")
+
+        return epoch_losses, iter_losses
+
+    def run_data_parallel(self, mnist_train, num_processes: int):
+        self.logger.info("Data parallel mode requested..")
         sampler = DistributedSampler(mnist_train)
         train_loader = DataLoader(mnist_train,
-                                      batch_size=self.batch_size,
-                                      sampler=sampler,
-                                      num_workers=num_processes)
+                                  batch_size=self.batch_size,
+                                  sampler=sampler,
+                                  num_workers=num_processes)
         my_parallel_model = DistributedDataParallel(self.my_model)
         # TODO: Create the training loop
 
@@ -123,7 +146,11 @@ class CnnRunner:
         if data_parallel:
             self.run_data_parallel(mnist_train, num_processes)
         else:
-            self.run_non_parallel(mnist_train, num_processes)
+            epoch_losses, iter_losses = self.run_non_parallel(mnist_train, num_processes)
+            self.logger.info(f"epoch_losses (type {type(epoch_losses)}, len {len(epoch_losses)}):"
+                             f"\n{epoch_losses}")
+            self.logger.info(f"iter_losses (type {type(iter_losses)}, len {len(iter_losses)}):"
+                             f"\n{iter_losses}")
 
         return
         # Prepare output folders and names
