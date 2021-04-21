@@ -1,13 +1,18 @@
 tag: all  # required_only or all
 # Jacob's Simple K-Means
-simple:
+parallel:
   - properties:
-      num_processesL:
+      num_processes:
         - 1
         - 2
         - 4
         - 8
       epochs: 30
-      dataset: mnist
+      batch_size: 64
+      learning_rate: 0.01
+      momentum: 0.5
+      dataset:
+        name: mnist
+        save_path: ../data/mnist
     type: required  # required or optional
     enabled: true  # true or false
