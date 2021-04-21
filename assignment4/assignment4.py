@@ -32,7 +32,7 @@ def run(config: List[Dict], tag: str) -> None:
 
 @timeit()
 def main():
-    """ This is the main function of assignment3.py
+    """ This is the main function of assignment4.py
 
     Example:
         python assignment4/assignment4.py \
@@ -52,7 +52,7 @@ def main():
         run(config=conf.get_config(config_name=config_key), tag=conf.tag)
         pass
 
-    main_logger.info("Assignment 3 Finished")
+    main_logger.info("Assignment 4 Finished")
 
 
 if __name__ == '__main__':
