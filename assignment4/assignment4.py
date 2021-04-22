@@ -29,6 +29,7 @@ def run_distributed(conf_props: Dict, log_name: str, local: bool = False) -> Non
     sys_path = os.path.dirname(os.path.realpath(__file__))
     run_file_path = os.path.join(sys_path, 'cnn_runner.py')
     for num_processes in conf_props['num_processes']:
+        run_log_name = log_name + f'_data_parallel_{num_processes}nprocs.log'
         cmd = f"{mpi_path} -n {num_processes} {sys.executable} {run_file_path} " \
               f"--dataset-name {conf_props['dataset']['name']} " \
               f"--dataset-path {conf_props['dataset']['save_path']} " \
@@ -37,7 +38,7 @@ def run_distributed(conf_props: Dict, log_name: str, local: bool = False) -> Non
               f"-bte {conf_props['batch_size_test']} " \
               f"-lr {conf_props['learning_rate']} " \
               f"-mo {conf_props['momentum']} " \
-              f"-l {log_name} " \
+              f"-l {run_log_name} " \
               f"--test-before-train"
         # Run
         os.system(cmd)
@@ -46,6 +47,7 @@ def run_distributed(conf_props: Dict, log_name: str, local: bool = False) -> Non
 def run(run_type: str, config: List[Dict], tag: str, log_name: str, local: bool) -> None:
     """Calls the CNN Runner for the specified configuration. """
 
+    log_name = log_name[:-4]
     data_parallel = (run_type == 'data_parallel')
     if data_parallel:
         for conf in config:
@@ -57,14 +59,17 @@ def run(run_type: str, config: List[Dict], tag: str, log_name: str, local: bool)
             if check_required(conf['type'], conf['enabled'], tag):
                 conf_props = conf['properties']
                 # Run
-                cr = CnnRunner(dataset=conf_props['dataset'],
-                               epochs=conf_props['epochs'],
-                               batch_size_train=conf_props['batch_size_train'],
-                               batch_size_test=conf_props['batch_size_test'],
-                               learning_rate=conf_props['learning_rate'],
-                               momentum=conf_props['momentum'],
-                               test_before_train=conf_props['test_before_train'])
+
                 for num_processes in conf_props['num_processes']:
+                    run_log_name = log_name + f'_non_parallel_{num_processes}nprocs.log'
+                    cr = CnnRunner(dataset=conf_props['dataset'],
+                                   epochs=conf_props['epochs'],
+                                   batch_size_train=conf_props['batch_size_train'],
+                                   batch_size_test=conf_props['batch_size_test'],
+                                   learning_rate=conf_props['learning_rate'],
+                                   momentum=conf_props['momentum'],
+                                   test_before_train=conf_props['test_before_train'],
+                                   log_path=run_log_name)
                     cr.run(num_processes=num_processes)
 
 

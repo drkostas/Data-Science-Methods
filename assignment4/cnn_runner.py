@@ -59,6 +59,8 @@ class CnnRunner:
                  learning_rate: float, test_before_train: bool, momentum: float = 0,
                  seed: int = 1, data_parallel: bool = False, log_path: str = None):
         # Set the object variables
+        if log_path:
+            self.__log_setup(log_path=log_path, clear_log=True)
         self.logger = ColorizedLogger(f'CnnRunner', 'green')
         self.dataset = dataset
         self.epochs = epochs
@@ -68,8 +70,6 @@ class CnnRunner:
         self.batch_size_test = batch_size_test
         self.test_before_train = test_before_train
         self.data_parallel = data_parallel
-        if log_path:
-            self.__log_setup(log_path=log_path)
         if self.data_parallel:
             self.rank = dist.get_rank()
         else:
@@ -79,22 +79,22 @@ class CnnRunner:
         torch.manual_seed(seed)
         # Create the training modules
         self.my_model = LeNet5(num_classes=10)
-        if self.rank in (None, 0):
-            self.logger.info(f"Model Architecture:\n{self.my_model}")
+
         self.loss_function = nn.CrossEntropyLoss()
         self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         if self.rank in (None, 0):
-            self.logger.info(f"Device using: {self.device}")
             self.logger.info("Model parameters are configured.")
+            self.logger.info(f"Device: {self.device}")
+            self.logger.info(f"Model Architecture:\n{self.my_model}")
         # Create folder where the results are going to be saved
         if self.rank in (None, 0):
             self.results_path = self.create_results_folder()
 
     @staticmethod
-    def __log_setup(log_path):
+    def __log_setup(log_path: str, clear_log: bool = False):
         sys_path = os.path.dirname(os.path.realpath(__file__))
         log_path = os.path.join(sys_path, '..', 'logs', log_path)
-        ColorizedLogger.setup_logger(log_path=log_path, clear_log=False)
+        ColorizedLogger.setup_logger(log_path=log_path, clear_log=clear_log)
 
     @staticmethod
     def create_results_folder():
@@ -215,7 +215,6 @@ class CnnRunner:
 
     def run_non_parallel(self, train_loader: DataLoader, test_loader: DataLoader) \
             -> Tuple[Tuple, Dict]:
-        self.logger.info("Non-parallel mode requested..")
 
         test_results = {}
         # Test with randomly initialize parameters
@@ -237,7 +236,7 @@ class CnnRunner:
         return train_results, test_results
 
     def train_parallel(self, train_loader: DataLoader) -> Tuple[List, List, List, List]:
-        # TODO: Check if grads reset
+
         my_model = nn.DataParallel(self.my_model)
         learning_rate = self.learning_rate * dist.get_world_size()
         optimizer = optim.SGD(my_model.parameters(), lr=learning_rate)
@@ -315,9 +314,8 @@ class CnnRunner:
         return train_results, test_results
 
     def store_results(self, data: Union[Tuple, Dict], num_processes: int, train: bool) -> None:
-        results_path = os.path.join(self.results_path, f'{num_processes}_Processes')
-        if not os.path.exists(results_path):
-            os.makedirs(results_path)
+        if not os.path.exists(self.results_path):
+            os.makedirs(self.results_path)
 
         # Create Run Specific Metadata file
         metadata = {"num_processes": num_processes,
@@ -328,28 +326,28 @@ class CnnRunner:
                     "batch_size_test": self.batch_size_test,
                     "data_parallel": self.data_parallel}
         # Save metadata as numpy dict and as human-readable csv
-        np.save(file=os.path.join(results_path, "metadata.npy"), arr=np.array(metadata))
+        np.save(file=os.path.join(self.results_path, "metadata.npy"), arr=np.array(metadata))
         metadata_csv = np.array([tuple(metadata.keys()), tuple(metadata.values())], dtype=str)
-        np.savetxt(os.path.join(results_path, "metadata.csv"), metadata_csv,
+        np.savetxt(os.path.join(self.results_path, "metadata.csv"), metadata_csv,
                    fmt="%s", delimiter=",")
 
         if train:
-            np.save(file=os.path.join(results_path, "train_epoch_accuracies.npy"),
+            np.save(file=os.path.join(self.results_path, "train_epoch_accuracies.npy"),
                     arr=np.array(data[0]))
-            np.save(file=os.path.join(results_path, "train_epoch_losses.npy"),
+            np.save(file=os.path.join(self.results_path, "train_epoch_losses.npy"),
                     arr=np.array(data[0]))
-            np.save(file=os.path.join(results_path, "train_iter_losses.npy"),
+            np.save(file=os.path.join(self.results_path, "train_iter_losses.npy"),
                     arr=np.array(data[0]))
-            np.save(file=os.path.join(results_path, "train_epoch_times.npy"),
+            np.save(file=os.path.join(self.results_path, "train_epoch_times.npy"),
                     arr=np.array(data[0]))
         else:
             for conf_key in data:
                 subset = data[conf_key]
-                dict_to_save = {"test_loss": subset[0],
-                                "correct": subset[1],
+                dict_to_save = {"test_loss": subset[0].numpy().item(),
+                                "correct": subset[1].numpy().item(),
                                 "total": subset[2],
-                                "percent_correct": subset[3]}
-                np.save(file=os.path.join(results_path, f"test_results_{conf_key}.npy"),
+                                "percent_correct": subset[3].numpy().item()}
+                np.save(file=os.path.join(self.results_path, f"test_results_{conf_key}.npy"),
                         arr=np.array(dict_to_save))
 
     def run(self, num_processes: int) -> None:
@@ -358,6 +356,9 @@ class CnnRunner:
             num_processes:
         Returns:
         """
+
+        mode = "Data Parallel" if self.data_parallel else "Non-parallel"
+        self.logger.info(f"{mode} mode with {num_processes} proc(s) requested..")
 
         # Load the Dataset
         mnist_train, mnist_test = self.dataset_loader()
