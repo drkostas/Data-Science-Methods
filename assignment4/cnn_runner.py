@@ -1,5 +1,8 @@
 import os
 from typing import List, Dict, IO, Tuple, Union
+import traceback
+import argparse
+import logging
 from glob import glob
 from tqdm import tqdm
 import numpy as np
@@ -8,12 +11,8 @@ import torch
 from torch import nn, optim, backends
 from torch.nn import functional as F
 from torchvision import transforms, datasets
-from torch.utils.data import DataLoader, Sampler
-# Distributed Torch
+from torch.utils.data import DataLoader
 import torch.distributed as dist
-from torch.nn.parallel import DistributedDataParallel
-from torch.utils.data.distributed import DistributedSampler
-from torch.distributed.optim import DistributedOptimizer
 # Custom stuff
 from playground import ColorizedLogger, timeit
 
@@ -53,9 +52,12 @@ class CnnRunner:
     batch_size_test: int
     test_before_train: bool
     results_path: str
+    data_parallel: bool
+    rank: Union[int, None]
 
     def __init__(self, dataset: Dict, epochs: int, batch_size_train: int, batch_size_test: int,
-                 learning_rate: float, test_before_train: bool, momentum: float = 0, seed: int = 1):
+                 learning_rate: float, test_before_train: bool, momentum: float = 0,
+                 seed: int = 1, data_parallel: bool = False, log_path: str = None):
         # Set the object variables
         self.logger = ColorizedLogger(f'CnnRunner', 'green')
         self.dataset = dataset
@@ -65,18 +67,34 @@ class CnnRunner:
         self.batch_size_train = batch_size_train
         self.batch_size_test = batch_size_test
         self.test_before_train = test_before_train
+        self.data_parallel = data_parallel
+        if log_path:
+            self.__log_setup(log_path=log_path)
+        if self.data_parallel:
+            self.rank = dist.get_rank()
+        else:
+            self.rank = None
         # Configure torch variables
         backends.cudnn.enabled = False
         torch.manual_seed(seed)
         # Create the training modules
         self.my_model = LeNet5(num_classes=10)
-        self.logger.info(f"Model Architecture:\n{self.my_model}")
-        self.optimizer = optim.SGD(self.my_model.parameters(),
-                                   lr=learning_rate, momentum=momentum)
+        if self.rank in (None, 0):
+            self.logger.info(f"Model Architecture:\n{self.my_model}")
         self.loss_function = nn.CrossEntropyLoss()
-        self.logger.info("Model parameters are configured.")
+        self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+        if self.rank in (None, 0):
+            self.logger.info(f"Device using: {self.device}")
+            self.logger.info("Model parameters are configured.")
         # Create folder where the results are going to be saved
-        self.results_path = self.create_results_folder()
+        if self.rank in (None, 0):
+            self.results_path = self.create_results_folder()
+
+    @staticmethod
+    def __log_setup(log_path):
+        sys_path = os.path.dirname(os.path.realpath(__file__))
+        log_path = os.path.join(sys_path, '..', 'logs', log_path)
+        ColorizedLogger.setup_logger(log_path=log_path, clear_log=False)
 
     @staticmethod
     def create_results_folder():
@@ -115,7 +133,8 @@ class CnnRunner:
                                         transform=transformation)
         else:
             raise NotImplemented("Dataset not yet supported!")
-        self.logger.info(f"{self.dataset['name'].capitalize()} dataset loaded successfully.")
+        if self.rank in (None, 0):
+            self.logger.info(f"{self.dataset['name'].capitalize()} dataset loaded successfully.")
 
         return mnist_train, mnist_test
 
@@ -137,13 +156,13 @@ class CnnRunner:
         self.logger.info(f"Accuracy: {100 * percent_correct:.2f}%", color="blue")
 
     def train_non_parallel(self, train_loader: DataLoader) -> Tuple[List, List, List, List]:
-        # TODO: Check if grads reset
         size_train_dataset = len(train_loader.dataset)
         iter_losses = []
         epoch_losses = []
         epoch_accuracies = []
         epoch_times = []
-
+        optimizer = optim.SGD(self.my_model.parameters(),
+                              lr=self.learning_rate, momentum=self.momentum)
         self.my_model.train()
         iter_epochs = tqdm(range(self.epochs), desc='Training Epochs')
         for _ in iter_epochs:
@@ -154,7 +173,7 @@ class CnnRunner:
             with timeit_:
                 iter_mini_batches = enumerate(train_loader)
                 for num_mini_batches, (X, Y) in iter_mini_batches:
-                    self.optimizer.zero_grad()
+                    optimizer.zero_grad()
                     pred = self.my_model(X)
                     pred_val = pred.data.max(1, keepdim=True)[1]
                     correct += pred_val.eq(Y.data.view_as(pred_val)).sum().item()
@@ -163,7 +182,7 @@ class CnnRunner:
                     iter_losses.append(iter_loss)
                     epoch_loss += iter_loss
                     loss.backward()
-                    self.optimizer.step()
+                    optimizer.step()
 
             epoch_loss /= (num_mini_batches + 1)
             epoch_losses.append(epoch_loss)
@@ -194,19 +213,9 @@ class CnnRunner:
 
         return test_loss, correct, size_test_dataset, accuracy
 
-    def run_non_parallel(self, mnist_train: datasets.MNIST, mnist_test: datasets.MNIST,
-                         num_processes: int) -> Tuple[Tuple, Dict]:
+    def run_non_parallel(self, train_loader: DataLoader, test_loader: DataLoader) \
+            -> Tuple[Tuple, Dict]:
         self.logger.info("Non-parallel mode requested..")
-
-        # Create a Train Loader
-        train_loader = torch.utils.data.DataLoader(mnist_train,
-                                                   batch_size=self.batch_size_train,
-                                                   shuffle=True,
-                                                   num_workers=num_processes)
-        test_loader = torch.utils.data.DataLoader(mnist_test,
-                                                  batch_size=self.batch_size_test,
-                                                  shuffle=True,
-                                                  num_workers=num_processes)
 
         test_results = {}
         # Test with randomly initialize parameters
@@ -227,17 +236,85 @@ class CnnRunner:
 
         return train_results, test_results
 
-    def run_data_parallel(self, mnist_train, num_processes: int):
-        self.logger.info("Data parallel mode requested..")
-        sampler = DistributedSampler(mnist_train)
-        train_loader = DataLoader(mnist_train,
-                                  batch_size=self.batch_size,
-                                  sampler=sampler,
-                                  num_workers=num_processes)
-        my_parallel_model = DistributedDataParallel(self.my_model)
-        # TODO: Create the training loop
+    def train_parallel(self, train_loader: DataLoader) -> Tuple[List, List, List, List]:
+        # TODO: Check if grads reset
+        my_model = nn.DataParallel(self.my_model)
+        learning_rate = self.learning_rate * dist.get_world_size()
+        optimizer = optim.SGD(my_model.parameters(), lr=learning_rate)
 
-    def store_results(self, data: Union[List, Dict], num_processes: int, train: bool) -> None:
+        size_train_dataset = len(train_loader.dataset)
+        iter_losses = []
+        epoch_losses = []
+        epoch_accuracies = []
+        epoch_times = []
+
+        self.my_model.train()
+        if self.rank == 0:
+            iter_epochs = tqdm(range(self.epochs), desc='Training Epochs')
+        else:
+            iter_epochs = range(self.epochs)
+
+        for _ in iter_epochs:
+            timeit_ = timeit(internal_only=True)
+            epoch_loss = 0.0
+            correct = 0
+            num_mini_batches = 0
+            with timeit_:
+                iter_mini_batches = enumerate(train_loader)
+                for num_mini_batches, (X, Y) in iter_mini_batches:
+                    optimizer.zero_grad()
+                    pred = self.my_model(X)
+                    pred_val = pred.data.max(1, keepdim=True)[1]
+                    correct += pred_val.eq(Y.data.view_as(pred_val)).sum().item()
+                    loss = self.loss_function(pred, Y)
+                    iter_loss = loss.item()
+                    iter_losses.append(iter_loss)
+                    epoch_loss += iter_loss
+                    loss.backward()
+                    optimizer.step()
+
+            epoch_loss /= (num_mini_batches + 1)
+            epoch_losses.append(epoch_loss)
+            epoch_accuracy = correct / size_train_dataset
+            epoch_accuracies.append(epoch_accuracy)
+            epoch_time = timeit_.total
+            epoch_times.append(epoch_time)
+            if self.rank == 0:
+                iter_epochs.set_postfix(epoch_accuracy=epoch_accuracy, epoch_loss=epoch_loss,
+                                        epoch_time=epoch_time)
+
+        return epoch_accuracies, epoch_losses, iter_losses, epoch_times
+
+    def run_data_parallel(self, train_loader: DataLoader, test_loader: DataLoader) \
+            -> Tuple[Tuple, Dict]:
+
+        if self.rank == 0:
+            self.logger.info("Parallel mode requested..")
+            self.logger.info(f"World size: {dist.get_world_size()}")
+
+        test_results = {}
+        # Test with randomly initialize parameters
+        if self.test_before_train:
+            test_results["before"] = self.test_non_parallel(test_loader)
+            if self.rank == 0:
+                self.logger.info("Randomly Initialized params testing:", color="blue")
+                self.print_test_results(*test_results["before"])
+
+        # Training
+        train_results = self.train_parallel(train_loader)
+        if self.rank == 0:
+            self.logger.info("Training Finished! Results:", color="magenta")
+            self.print_train_results(*train_results)
+
+        # Testing
+        test_results["after"] = self.test_non_parallel(test_loader)
+        if self.rank == 0:
+            self.logger.info("Testing Finished! Results:", color="blue")
+            self.print_test_results(*test_results["after"])
+
+        return train_results, test_results
+
+    def store_results(self, data: Union[Tuple, Dict], num_processes: int, train: bool) -> None:
         results_path = os.path.join(self.results_path, f'{num_processes}_Processes')
         if not os.path.exists(results_path):
             os.makedirs(results_path)
@@ -248,8 +325,13 @@ class CnnRunner:
                     "learning_rate": self.learning_rate,
                     "momentum": self.momentum,
                     "batch_size_train": self.batch_size_train,
-                    "batch_size_test": self.batch_size_test}
+                    "batch_size_test": self.batch_size_test,
+                    "data_parallel": self.data_parallel}
+        # Save metadata as numpy dict and as human-readable csv
         np.save(file=os.path.join(results_path, "metadata.npy"), arr=np.array(metadata))
+        metadata_csv = np.array([tuple(metadata.keys()), tuple(metadata.values())], dtype=str)
+        np.savetxt(os.path.join(results_path, "metadata.csv"), metadata_csv,
+                   fmt="%s", delimiter=",")
 
         if train:
             np.save(file=os.path.join(results_path, "train_epoch_accuracies.npy"),
@@ -270,21 +352,98 @@ class CnnRunner:
                 np.save(file=os.path.join(results_path, f"test_results_{conf_key}.npy"),
                         arr=np.array(dict_to_save))
 
-    def run(self, num_processes: int, data_parallel: bool) -> None:
+    def run(self, num_processes: int) -> None:
         """
-
         Args:
             num_processes:
-            data_parallel:
         Returns:
-
         """
 
+        # Load the Dataset
         mnist_train, mnist_test = self.dataset_loader()
-        if data_parallel:
-            self.run_data_parallel(mnist_train, num_processes)
+        # Create Train and Test loaders
+        train_loader = torch.utils.data.DataLoader(mnist_train,
+                                                   batch_size=self.batch_size_train,
+                                                   shuffle=True,
+                                                   num_workers=num_processes)
+        test_loader = torch.utils.data.DataLoader(mnist_test,
+                                                  batch_size=self.batch_size_test,
+                                                  shuffle=True,
+                                                  num_workers=num_processes)
+        # Train and Test
+        if self.data_parallel:
+            train_results, test_results = self.run_data_parallel(train_loader, test_loader)
         else:
-            train_results, test_results = self.run_non_parallel(mnist_train, mnist_test, num_processes)
+            train_results, test_results = self.run_non_parallel(train_loader, test_loader)
+        # Save Results
+        if self.rank in (None, 0):
+            self.store_results(data=train_results, num_processes=num_processes, train=True)
+            self.store_results(data=test_results, num_processes=num_processes, train=False)
 
-        self.store_results(data=train_results, num_processes=num_processes, train=True)
-        self.store_results(data=test_results, num_processes=num_processes, train=False)
+
+def get_args() -> argparse.Namespace:
+    """Setup the argument parser
+
+    Returns:
+        argparse.Namespace:
+    """
+    parser = argparse.ArgumentParser(
+        description='A playground repo for the DSE-512 course..',
+        add_help=False)
+    # Required Args
+    required_args = parser.add_argument_group('Required Arguments')
+    # Optional args
+    required_args.add_argument('--dataset-name')
+    required_args.add_argument('--dataset-path')
+    required_args.add_argument('-ep', '--epochs')
+    required_args.add_argument('-btr', '--batch-size-train')
+    required_args.add_argument('-bte', '--batch-size-test')
+    required_args.add_argument('-lr', '--learning-rate')
+    required_args.add_argument('-mo', '--momentum')
+    required_args.add_argument('-l', '--log')
+    optional_args = parser.add_argument_group('Optional Arguments')
+    optional_args.add_argument('--test-before-train', action='store_true')
+    optional_args.add_argument("-h", "--help", action="help", help="Show this help message and exit")
+
+    return parser.parse_args()
+
+
+def main():
+    import mpi4py.MPI as MPI
+    from os import environ
+    # Set default env vars if are not set
+    if environ.get('MASTER_ADDR') is None:
+        os.environ['MASTER_ADDR'] = 'localhost'
+    if environ.get('MASTER_PORT') is None:
+        os.environ['MASTER_PORT'] = '12345'
+    # Get the arguments
+    args = get_args()
+    # Setup MPI and Torch distributed
+    rank = MPI.COMM_WORLD.Get_rank()
+    world_size = MPI.COMM_WORLD.Get_size()
+    dist.init_process_group('gloo',
+                            init_method='env://',
+                            world_size=world_size,
+                            rank=rank)
+    # Initialize the CNN Runner
+    dataset = {"name": args.dataset_name,
+               "save_path": args.dataset_path}
+    cr = CnnRunner(dataset=dataset,
+                   epochs=int(args.epochs),
+                   batch_size_train=int(args.batch_size_train),
+                   batch_size_test=int(args.batch_size_test),
+                   learning_rate=float(args.learning_rate),
+                   momentum=float(args.momentum),
+                   test_before_train=args.test_before_train,
+                   data_parallel=True,
+                   log_path=args.log)
+    # Train and Test the model
+    cr.run(num_processes=world_size)
+
+
+if __name__ == '__main__':
+    try:
+        main()
+    except Exception as e:
+        logging.error(str(e) + '\n' + str(traceback.format_exc()))
+        raise e
