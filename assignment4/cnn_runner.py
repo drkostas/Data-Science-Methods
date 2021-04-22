@@ -1,6 +1,8 @@
 import os
-from typing import Dict, IO, Union
+from typing import List, Dict, IO, Tuple, Union
+from glob import glob
 from tqdm import tqdm
+import numpy as np
 # Torch & Torch Vision
 import torch
 from torch import nn, optim, backends
@@ -45,9 +47,12 @@ class CnnRunner:
     outputs_file: IO
     dataset: Dict
     epochs: int
+    learning_rate: float
+    momentum: float
     batch_size_train: int
     batch_size_test: int
     test_before_train: bool
+    results_path: str
 
     def __init__(self, dataset: Dict, epochs: int, batch_size_train: int, batch_size_test: int,
                  learning_rate: float, test_before_train: bool, momentum: float = 0, seed: int = 1):
@@ -55,6 +60,8 @@ class CnnRunner:
         self.logger = ColorizedLogger(f'CnnRunner', 'green')
         self.dataset = dataset
         self.epochs = epochs
+        self.learning_rate = learning_rate
+        self.momentum = momentum
         self.batch_size_train = batch_size_train
         self.batch_size_test = batch_size_test
         self.test_before_train = test_before_train
@@ -68,8 +75,30 @@ class CnnRunner:
                                    lr=learning_rate, momentum=momentum)
         self.loss_function = nn.CrossEntropyLoss()
         self.logger.info("Model parameters are configured.")
+        # Create folder where the results are going to be saved
+        self.results_path = self.create_results_folder()
 
-    def dataset_loader(self):
+    @staticmethod
+    def create_results_folder():
+        # Create Base Assignment folder
+        sys_path = os.path.dirname(os.path.realpath(__file__))
+        output_base_path = os.path.join(sys_path, '..', 'outputs', 'assignment4')
+        # Find max run number and set the next
+        previous_runs = [d for d in glob(os.path.join(output_base_path, "run*"))
+                         if os.path.isdir(d)]
+        if len(previous_runs) > 0:
+            previous_runs = [d.split(os.sep)[-1] for d in previous_runs]
+            max_run_num = int(max(previous_runs)[-1]) + 1
+        else:
+            max_run_num = 0
+        # Create outputs folder for this run
+        run_folder_name = f"run{max_run_num}"
+        run_specific_path = os.path.join(output_base_path, run_folder_name)
+        if not os.path.exists(run_specific_path):
+            os.makedirs(run_specific_path)
+        return run_specific_path
+
+    def dataset_loader(self) -> Tuple[datasets.MNIST, datasets.MNIST]:
         if self.dataset['name'].lower() == 'mnist':
             transformation = transforms \
                 .Compose([transforms.Resize((32, 32)),
@@ -90,7 +119,8 @@ class CnnRunner:
 
         return mnist_train, mnist_test
 
-    def print_train_results(self, epoch_accuracies, epoch_losses, iter_losses, epoch_times):
+    def print_train_results(self, epoch_accuracies: List, epoch_losses: List,
+                            iter_losses: List, epoch_times: List) -> None:
         self.logger.info(f"Epoch Accuracies (len {len(epoch_accuracies)}):\n{epoch_accuracies}",
                          color="magenta")
         self.logger.info(f"Epoch Losses (len {len(epoch_losses)}):\n{epoch_losses}",
@@ -100,12 +130,13 @@ class CnnRunner:
         self.logger.info(f"Epoch Elapsed Timed (len {len(epoch_times)}):\n{epoch_times}",
                          color="magenta")
 
-    def print_test_results(self, test_loss, correct, total, percent_correct):
+    def print_test_results(self, test_loss: float, correct: int, total: int,
+                           percent_correct: float) -> None:
         self.logger.info(f"Test Loss: {test_loss}", color="blue")
         self.logger.info(f"Correct/Total : {correct}/{total}", color="blue")
-        self.logger.info(f"Accuracy: {100*percent_correct:.2f}%", color="blue")
+        self.logger.info(f"Accuracy: {100 * percent_correct:.2f}%", color="blue")
 
-    def train_non_parallel(self, train_loader):
+    def train_non_parallel(self, train_loader: DataLoader) -> Tuple[List, List, List, List]:
         # TODO: Check if grads reset
         size_train_dataset = len(train_loader.dataset)
         iter_losses = []
@@ -145,7 +176,7 @@ class CnnRunner:
 
         return epoch_accuracies, epoch_losses, iter_losses, epoch_times
 
-    def test_non_parallel(self, test_loader):
+    def test_non_parallel(self, test_loader: DataLoader) -> Tuple[float, int, int, float]:
         self.my_model.eval()
         test_loss = 0.0
         correct = 0
@@ -163,7 +194,8 @@ class CnnRunner:
 
         return test_loss, correct, size_test_dataset, accuracy
 
-    def run_non_parallel(self, mnist_train, mnist_test, num_processes: int):
+    def run_non_parallel(self, mnist_train: datasets.MNIST, mnist_test: datasets.MNIST,
+                         num_processes: int) -> Tuple[Tuple, Dict]:
         self.logger.info("Non-parallel mode requested..")
 
         # Create a Train Loader
@@ -176,25 +208,24 @@ class CnnRunner:
                                                   shuffle=True,
                                                   num_workers=num_processes)
 
+        test_results = {}
         # Test with randomly initialize parameters
         if self.test_before_train:
-            test_loss, correct, total, percent_correct = self.test_non_parallel(test_loader)
+            test_results["before"] = self.test_non_parallel(test_loader)
             self.logger.info("Randomly Initialized params testing:", color="blue")
-            self.print_test_results(test_loss, correct, total, percent_correct)
+            self.print_test_results(*test_results["before"])
 
         # Training
-        epoch_accuracies, epoch_losses, iter_losses, epoch_times = \
-            self.train_non_parallel(train_loader)
+        train_results = self.train_non_parallel(train_loader)
         self.logger.info("Training Finished! Results:", color="magenta")
-        self.print_train_results(epoch_accuracies, epoch_losses, iter_losses, epoch_times)
+        self.print_train_results(*train_results)
 
         # Testing
-        test_loss, correct, total, percent_correct = self.test_non_parallel(test_loader)
+        test_results["after"] = self.test_non_parallel(test_loader)
         self.logger.info("Testing Finished! Results:", color="blue")
-        self.print_test_results(test_loss, correct, total, percent_correct)
+        self.print_test_results(*test_results["after"])
 
-        return epoch_accuracies, epoch_losses, iter_losses, epoch_times, \
-            test_loss, correct, total, percent_correct
+        return train_results, test_results
 
     def run_data_parallel(self, mnist_train, num_processes: int):
         self.logger.info("Data parallel mode requested..")
@@ -206,7 +237,40 @@ class CnnRunner:
         my_parallel_model = DistributedDataParallel(self.my_model)
         # TODO: Create the training loop
 
-    def run(self, num_processes: int, data_parallel: bool):
+    def store_results(self, data: Union[List, Dict], num_processes: int, train: bool) -> None:
+        results_path = os.path.join(self.results_path, f'{num_processes}_Processes')
+        if not os.path.exists(results_path):
+            os.makedirs(results_path)
+
+        # Create Run Specific Metadata file
+        metadata = {"num_processes": num_processes,
+                    "epochs": self.epochs,
+                    "learning_rate": self.learning_rate,
+                    "momentum": self.momentum,
+                    "batch_size_train": self.batch_size_train,
+                    "batch_size_test": self.batch_size_test}
+        np.save(file=os.path.join(results_path, "metadata.npy"), arr=np.array(metadata))
+
+        if train:
+            np.save(file=os.path.join(results_path, "train_epoch_accuracies.npy"),
+                    arr=np.array(data[0]))
+            np.save(file=os.path.join(results_path, "train_epoch_losses.npy"),
+                    arr=np.array(data[0]))
+            np.save(file=os.path.join(results_path, "train_iter_losses.npy"),
+                    arr=np.array(data[0]))
+            np.save(file=os.path.join(results_path, "train_epoch_times.npy"),
+                    arr=np.array(data[0]))
+        else:
+            for conf_key in data:
+                subset = data[conf_key]
+                dict_to_save = {"test_loss": subset[0],
+                                "correct": subset[1],
+                                "total": subset[2],
+                                "percent_correct": subset[3]}
+                np.save(file=os.path.join(results_path, f"test_results_{conf_key}.npy"),
+                        arr=np.array(dict_to_save))
+
+    def run(self, num_processes: int, data_parallel: bool) -> None:
         """
 
         Args:
@@ -220,36 +284,7 @@ class CnnRunner:
         if data_parallel:
             self.run_data_parallel(mnist_train, num_processes)
         else:
-            epoch_accuracies, epoch_losses, iter_losses, epoch_times, \
-            test_loss, correct, total, percent_correct = \
-                self.run_non_parallel(mnist_train, mnist_test, num_processes)
+            train_results, test_results = self.run_non_parallel(mnist_train, mnist_test, num_processes)
 
-        return
-        # Prepare output folders and names
-        # sys_path = os.path.dirname(os.path.realpath(__file__))
-        # output_file_name = f'assignment4_{dataset}_{num_processes}.txt'
-        # profiler_file_name = f'assignment4_{dataset}_{num_processes}.o'
-        # output_base_path = os.path.join(sys_path, '..', 'outputs')
-        # if not os.path.exists(output_base_path):
-        #     os.makedirs(output_base_path)
-        # profiler_file_path = os.path.join(output_base_path, profiler_file_name)
-        # output_file_path = os.path.join(output_base_path, output_file_name)
-        #
-        # # Open results output file
-        # with open(output_file_path, 'w') as self.outputs_file:
-        #     self.outputs_file.write(f'CNN for the {dataset} dataset '
-        #                             f'with {num_processes} num_processes .\n')
-        #
-        #     # Load Dataset if not already loaded
-        #     # features = self._load_dataset(dataset)
-        #
-        #     # Run Kmeans
-        #     k_words = ['kmeans.py', 'ncalls']  # Include only pstats that contain these words
-        #     custom_print = f'Profiling CNN for the `{dataset}` dataset' + \
-        #                    f'with {num_processes} num_processes: '
-        #     with profileit(file=self.outputs_file, profiler_output=profiler_file_path,
-        #                    custom_print=custom_print,
-        #                    keep_only_these=k_words):
-        #         # Save results
-        #         self.logger.info(f"Results: \n{results}")
-        #         pass
+        self.store_results(data=train_results, num_processes=num_processes, train=True)
+        self.store_results(data=test_results, num_processes=num_processes, train=False)
