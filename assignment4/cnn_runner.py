@@ -105,8 +105,8 @@ class CnnRunner:
         previous_runs = [d for d in glob(os.path.join(output_base_path, "run*"))
                          if os.path.isdir(d)]
         if len(previous_runs) > 0:
-            previous_runs = [d.split(os.sep)[-1] for d in previous_runs]
-            max_run_num = int(max(previous_runs)[-1]) + 1
+            previous_runs = [int(d.split(os.sep)[-1][3:]) for d in previous_runs]
+            max_run_num = max(previous_runs) + 1
         else:
             max_run_num = 0
         # Create outputs folder for this run
