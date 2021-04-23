@@ -4,7 +4,7 @@ non_parallel:
       num_processes:
         - 1
       epochs: 3
-      batch_size_train: 32
+      batch_size_train: 128
       batch_size_test: 1000
       learning_rate: 0.01
       momentum: 0.5
