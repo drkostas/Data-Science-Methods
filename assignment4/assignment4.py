@@ -28,6 +28,7 @@ def run_distributed(conf_props: Dict, log_name: str, local: bool = False) -> Non
     # Construct the command
     sys_path = os.path.dirname(os.path.realpath(__file__))
     run_file_path = os.path.join(sys_path, 'cnn_runner.py')
+    test_before_train = "--test-before-train" if conf_props["test_before_train"] else ""
     for num_processes in conf_props['num_processes']:
         run_log_name = log_name + f'_data_parallel_{num_processes}nprocs.log'
         cmd = f"{mpi_path} -n {num_processes} {sys.executable} {run_file_path} " \
@@ -39,7 +40,7 @@ def run_distributed(conf_props: Dict, log_name: str, local: bool = False) -> Non
               f"-lr {conf_props['learning_rate']} " \
               f"-mo {conf_props['momentum']} " \
               f"-l {run_log_name} " \
-              f"--test-before-train"
+              f"{test_before_train}"
         # Run
         main_logger.info(cmd)
         os.system(cmd)
