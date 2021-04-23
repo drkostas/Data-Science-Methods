@@ -335,11 +335,11 @@ class CnnRunner:
             np.save(file=os.path.join(self.results_path, "train_epoch_accuracies.npy"),
                     arr=np.array(data[0]))
             np.save(file=os.path.join(self.results_path, "train_epoch_losses.npy"),
-                    arr=np.array(data[0]))
+                    arr=np.array(data[1]))
             np.save(file=os.path.join(self.results_path, "train_iter_losses.npy"),
-                    arr=np.array(data[0]))
+                    arr=np.array(data[2]))
             np.save(file=os.path.join(self.results_path, "train_epoch_times.npy"),
-                    arr=np.array(data[0]))
+                    arr=np.array(data[3]))
         else:
             for conf_key in data:
                 subset = data[conf_key]
