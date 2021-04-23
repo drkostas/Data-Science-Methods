@@ -60,6 +60,11 @@ class CnnRunner:
                  learning_rate: float, test_before_train: bool, momentum: float = 0,
                  seed: int = 1, data_parallel: bool = False, log_path: str = None):
         # Set the object variables
+        self.data_parallel = data_parallel
+        if self.data_parallel:
+            self.rank = dist.get_rank()
+        else:
+            self.rank = None
         if self.rank in (None, 0):
             if log_path:
                 self.__log_setup(log_path=log_path, clear_log=True)
@@ -71,11 +76,7 @@ class CnnRunner:
         self.batch_size_train = batch_size_train
         self.batch_size_test = batch_size_test
         self.test_before_train = test_before_train
-        self.data_parallel = data_parallel
-        if self.data_parallel:
-            self.rank = dist.get_rank()
-        else:
-            self.rank = None
+
         # Configure torch variables
         backends.cudnn.enabled = False
         torch.manual_seed(seed)
