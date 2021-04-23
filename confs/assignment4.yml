@@ -18,9 +18,9 @@ data_parallel:
   - properties:
       num_processes:
 #        - 1
-#        - 2
+        - 2
 #        - 4
-        - 8
+#        - 8
       epochs: 1
       batch_size_train: 64
       batch_size_test: 1000

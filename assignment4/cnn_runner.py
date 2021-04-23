@@ -1,4 +1,4 @@
-import os
+import os, sys
 from typing import List, Dict, IO, Tuple, Union
 import traceback
 import argparse
@@ -141,17 +141,6 @@ class CnnRunner:
 
         return mnist_train, mnist_test
 
-    def print_train_results(self, epoch_accuracies: List, epoch_losses: List,
-                            iter_losses: List, epoch_times: List) -> None:
-        self.logger.info(f"Epoch Accuracies (len {len(epoch_accuracies)}):\n{epoch_accuracies}",
-                         color="magenta")
-        self.logger.info(f"Epoch Losses (len {len(epoch_losses)}):\n{epoch_losses}",
-                         color="magenta")
-        self.logger.info(f"Mini Batch Losses (len {len(iter_losses)}):\n{iter_losses}",
-                         color="magenta")
-        self.logger.info(f"Epoch Elapsed Timed (len {len(epoch_times)}):\n{epoch_times}",
-                         color="magenta")
-
     def print_test_results(self, test_loss: float, correct: int, total: int,
                            percent_correct: float) -> None:
         self.logger.info(f"Test Loss: {test_loss}", color="blue")
@@ -160,7 +149,6 @@ class CnnRunner:
 
     def train_non_parallel(self, train_loader: DataLoader) -> Tuple[List, List, List, List]:
         size_train_dataset = len(train_loader.dataset)
-        iter_losses = []
         epoch_losses = []
         epoch_accuracies = []
         epoch_times = []
@@ -182,7 +170,6 @@ class CnnRunner:
                     correct += pred_val.eq(Y.data.view_as(pred_val)).sum().item()
                     loss = self.loss_function(pred, Y)
                     iter_loss = loss.item()
-                    iter_losses.append(iter_loss)
                     epoch_loss += iter_loss
                     loss.backward()
                     optimizer.step()
@@ -196,7 +183,7 @@ class CnnRunner:
             iter_epochs.set_postfix(epoch_accuracy=epoch_accuracy, epoch_loss=epoch_loss,
                                     epoch_time=epoch_time)
 
-        return epoch_accuracies, epoch_losses, iter_losses, epoch_times
+        return epoch_accuracies, epoch_losses, epoch_times
 
     def test_non_parallel(self, test_loader: DataLoader) -> Tuple[float, int, int, float]:
         self.my_model.eval()
@@ -229,23 +216,27 @@ class CnnRunner:
         # Training
         train_results = self.train_non_parallel(train_loader)
         self.logger.info("Training Finished! Results:", color="magenta")
-        self.print_train_results(*train_results)
 
         # Testing
         test_results["after"] = self.test_non_parallel(test_loader)
-        self.logger.info("Testing Finished! Results:", color="blue")
+        self.logger.info("Testing Finished! Storing results..", color="blue")
         self.print_test_results(*test_results["after"])
 
         return train_results, test_results
 
     def train_parallel(self, train_loader: DataLoader) -> Tuple[List, List, List, List]:
+        def sizeof_fmt(num, suffix='B'):
+            for unit in ['', 'Ki', 'Mi', 'Gi', 'Ti', 'Pi', 'Ei', 'Zi']:
+                if abs(num) < 1024.0:
+                    return "%3.1f %s%s" % (num, unit, suffix)
+                num /= 1024.0
+            return "%.1f %s%s" % (num, 'Yi', suffix)
 
         my_model = nn.parallel.DistributedDataParallel(self.my_model)
         learning_rate = self.learning_rate * dist.get_world_size()
         optimizer = optim.SGD(my_model.parameters(), lr=learning_rate)
 
         size_train_dataset = len(train_loader.dataset)
-        iter_losses = []
         epoch_losses = []
         epoch_accuracies = []
         epoch_times = []
@@ -270,13 +261,16 @@ class CnnRunner:
                     correct += pred_val.eq(Y.data.view_as(pred_val)).sum().item()
                     loss = self.loss_function(pred, Y)
                     iter_loss = loss.item()
-                    iter_losses.append(iter_loss)
                     epoch_loss += iter_loss
                     loss.backward()
                     optimizer.step()
-                    all_objects = muppy.get_objects()
-                    sum1 = summary.summarize(all_objects)
-                    summary.print_(sum1)
+                    # all_objects = muppy.get_objects()
+                    # sum1 = summary.summarize(all_objects)
+                    # summary.print_(sum1)
+                    for name, size in sorted(
+                            ((name, sys.getsizeof(value)) for name, value in locals().items()),
+                            key=lambda x: -x[1])[:10]:
+                        self.logger.info("\n{:>30}: {:>8}".format(name, sizeof_fmt(size)))
 
             epoch_loss /= (num_mini_batches + 1)
             epoch_losses.append(epoch_loss)
@@ -288,7 +282,7 @@ class CnnRunner:
                 iter_epochs.set_postfix(epoch_accuracy=epoch_accuracy, epoch_loss=epoch_loss,
                                         epoch_time=epoch_time)
 
-        return epoch_accuracies, epoch_losses, iter_losses, epoch_times
+        return epoch_accuracies, epoch_losses, epoch_times
 
     def run_data_parallel(self, train_loader: DataLoader, test_loader: DataLoader) \
             -> Tuple[Tuple, Dict]:
@@ -308,12 +302,11 @@ class CnnRunner:
         train_results = self.train_parallel(train_loader)
         if self.rank == 0:
             self.logger.info("Training Finished! Results:", color="magenta")
-            self.print_train_results(*train_results)
 
         # Testing
         test_results["after"] = self.test_non_parallel(test_loader)
         if self.rank == 0:
-            self.logger.info("Testing Finished! Results:", color="blue")
+            self.logger.info("Testing Finished! Storing results..", color="blue")
             self.print_test_results(*test_results["after"])
 
         return train_results, test_results
@@ -341,10 +334,8 @@ class CnnRunner:
                     arr=np.array(data[0]))
             np.save(file=os.path.join(self.results_path, "train_epoch_losses.npy"),
                     arr=np.array(data[1]))
-            np.save(file=os.path.join(self.results_path, "train_iter_losses.npy"),
-                    arr=np.array(data[2]))
             np.save(file=os.path.join(self.results_path, "train_epoch_times.npy"),
-                    arr=np.array(data[3]))
+                    arr=np.array(data[2]))
         else:
             for conf_key in data:
                 subset = data[conf_key]
