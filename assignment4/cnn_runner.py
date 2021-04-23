@@ -259,7 +259,7 @@ class CnnRunner:
                     pred = self.my_model(X)
                     pred_val = torch.flatten(pred.data.max(1, keepdim=True)[1])
                     # correct += pred_val.eq(Y.data.view_as(pred_val)).sum().item()
-                    correct += (pred_val == Y).sum().item()
+                    # correct += (pred_val == Y).sum().item()
                     loss = self.loss_function(pred, Y)
                     del pred_val
                     del pred
