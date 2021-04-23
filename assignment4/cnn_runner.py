@@ -44,6 +44,28 @@ class LeNet5(torch.nn.Module):
         return F.log_softmax(linear_step, dim=-1)
 
 
+class VolModel(nn.Module):
+    def __init__(self, num_classes=10):
+        super().__init__()
+        self.num_classes = num_classes
+
+        self.conv1 = nn.Conv2d(1, 4, 3)
+        self.activation = nn.ReLU()
+        self.conv2 = nn.Conv2d(4, 10, 3)
+        self.pool = nn.AdaptiveMaxPool2d((1, 1))
+        self.classifier = nn.Linear(10, num_classes)
+
+    def forward(self, x):
+        x = self.conv1(x)
+        x = self.activation(x)
+        x = self.conv2(x)
+        x = self.activation(x)
+        x = self.pool(x)
+        x = x.squeeze(-1).squeeze(-1)
+        x = self.classifier(x)
+        return x
+
+
 class CnnRunner:
     logger: ColorizedLogger
     outputs_file: IO
@@ -83,7 +105,8 @@ class CnnRunner:
         backends.cudnn.enabled = False
         torch.manual_seed(seed)
         # Create the training modules
-        self.my_model = LeNet5(num_classes=10)
+        # self.my_model = LeNet5(num_classes=10)
+        self.my_model = VolModel(num_classes=10)
 
         self.loss_function = nn.CrossEntropyLoss()
         self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -269,8 +292,10 @@ class CnnRunner:
                     optimizer.step()
                 if self.rank == 0:
                     process = psutil.Process(os.getpid())
-                    self.logger.info(f"RSS Mem: {int(process.memory_info().rss)/1024/1024/1024:.2f} GB")
-                    self.logger.info(f"VMS Mem: {int(process.memory_info().vms)/1024/1024/1024:.2f} GB")
+                    self.logger.info(
+                        f"RSS Mem: {int(process.memory_info().rss) / 1024 / 1024 / 1024:.2f} GB")
+                    self.logger.info(
+                        f"VMS Mem: {int(process.memory_info().vms) / 1024 / 1024 / 1024:.2f} GB")
 
             epoch_loss /= (num_mini_batches + 1)
             epoch_losses.append(epoch_loss)
