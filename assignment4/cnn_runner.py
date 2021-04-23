@@ -270,6 +270,7 @@ class CnnRunner:
                 if self.rank == 0:
                     process = psutil.Process(os.getpid())
                     self.logger.info(f"RSS Mem: {int(process.memory_info().rss)/1024/1024/1024:.2f} GB")
+                    self.logger.info(f"VMS Mem: {int(process.memory_info().vms)/1024/1024/1024:.2f} GB")
 
             epoch_loss /= (num_mini_batches + 1)
             epoch_losses.append(epoch_loss)
