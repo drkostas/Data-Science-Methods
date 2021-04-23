@@ -264,14 +264,15 @@ class CnnRunner:
                     epoch_loss += iter_loss
                     loss.backward()
                     optimizer.step()
-                    # all_objects = muppy.get_objects()
-                    # sum1 = summary.summarize(all_objects)
-                    # summary.print_(sum1)
-                    if self.rank == 0:
-                        for name, size in sorted(
-                                ((name, sys.getsizeof(value)) for name, value in globals().items()),
-                                key=lambda x: -x[1])[:10]:
-                            self.logger.info("{:>30}: {:>8}".format(name, sizeof_fmt(size)))
+                # all_objects = muppy.get_objects()
+                # sum1 = summary.summarize(all_objects)
+                # summary.print_(sum1)
+                if self.rank == 0:
+                    for name, size in sorted(
+                            ((name, sys.getsizeof(value)) for name, value in globals().items()),
+                            key=lambda x: -x[1])[:10]:
+                        self.logger.info(f"Epoch: {_}")
+                        self.logger.info("{:>30}: {:>8}".format(name, sizeof_fmt(size)))
 
             epoch_loss /= (num_mini_batches + 1)
             epoch_losses.append(epoch_loss)
