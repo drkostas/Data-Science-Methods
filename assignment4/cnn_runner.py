@@ -267,10 +267,11 @@ class CnnRunner:
                     # all_objects = muppy.get_objects()
                     # sum1 = summary.summarize(all_objects)
                     # summary.print_(sum1)
-                    for name, size in sorted(
-                            ((name, sys.getsizeof(value)) for name, value in locals().items()),
-                            key=lambda x: -x[1])[:10]:
-                        self.logger.info("\n{:>30}: {:>8}".format(name, sizeof_fmt(size)))
+                    if self.rank == 0:
+                        for name, size in sorted(
+                                ((name, sys.getsizeof(value)) for name, value in locals().items()),
+                                key=lambda x: -x[1])[:10]:
+                            self.logger.info("\n{:>30}: {:>8}".format(name, sizeof_fmt(size)))
 
             epoch_loss /= (num_mini_batches + 1)
             epoch_losses.append(epoch_loss)
