@@ -147,7 +147,7 @@ class CnnRunner:
         self.logger.info(f"Correct/Total : {correct}/{total}", color="blue")
         self.logger.info(f"Accuracy: {100 * percent_correct:.2f}%", color="blue")
 
-    def train_non_parallel(self, train_loader: DataLoader) -> Tuple[List, List, List, List]:
+    def train_non_parallel(self, train_loader: DataLoader) -> Tuple[List, List, List]:
         size_train_dataset = len(train_loader.dataset)
         epoch_losses = []
         epoch_accuracies = []
@@ -224,7 +224,7 @@ class CnnRunner:
 
         return train_results, test_results
 
-    def train_parallel(self, train_loader: DataLoader) -> Tuple[List, List, List, List]:
+    def train_parallel(self, train_loader: DataLoader) -> Tuple[List, List, List]:
         def sizeof_fmt(num, suffix='B'):
             for unit in ['', 'Ki', 'Mi', 'Gi', 'Ti', 'Pi', 'Ei', 'Zi']:
                 if abs(num) < 1024.0:
@@ -269,9 +269,9 @@ class CnnRunner:
                     # summary.print_(sum1)
                     if self.rank == 0:
                         for name, size in sorted(
-                                ((name, sys.getsizeof(value)) for name, value in locals().items()),
+                                ((name, sys.getsizeof(value)) for name, value in globals().items()),
                                 key=lambda x: -x[1])[:10]:
-                            self.logger.info("\n{:>30}: {:>8}".format(name, sizeof_fmt(size)))
+                            self.logger.info("{:>30}: {:>8}".format(name, sizeof_fmt(size)))
 
             epoch_loss /= (num_mini_batches + 1)
             epoch_losses.append(epoch_loss)
