@@ -41,7 +41,7 @@ def run_distributed(conf_props: Dict, log_name: str, local: bool = False) -> Non
               f"-l {run_log_name} " \
               f"--test-before-train"
         # Run
-        print(cmd)
+        main_logger.info(cmd)
         os.system(cmd)
 
 

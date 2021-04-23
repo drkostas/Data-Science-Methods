@@ -166,9 +166,12 @@ class CnnRunner:
                 for num_mini_batches, (X, Y) in iter_mini_batches:
                     optimizer.zero_grad()
                     pred = self.my_model(X)
-                    pred_val = pred.data.max(1, keepdim=True)[1]
-                    correct += pred_val.eq(Y.data.view_as(pred_val)).sum().item()
+                    pred_val = torch.flatten(pred.data.max(1, keepdim=True)[1])
+                    # correct += pred_val.eq(Y.data.view_as(pred_val)).sum().item()
+                    correct += (pred_val == Y).sum().item()
                     loss = self.loss_function(pred, Y)
+                    del pred_val
+                    del pred
                     iter_loss = loss.item()
                     epoch_loss += iter_loss
                     loss.backward()
@@ -193,9 +196,10 @@ class CnnRunner:
             iter_mini_batches = tqdm(enumerate(test_loader), desc='Testing', leave=False)
             for num_mini_batches, (X, Y) in iter_mini_batches:
                 pred = self.my_model(X)
-                test_loss += self.loss_function(pred, Y)
-                pred_val = pred.data.max(1, keepdim=True)[1]
-                correct += pred_val.eq(Y.data.view_as(pred_val)).sum()
+                test_loss += self.loss_function(pred, Y).item()
+                pred_val = torch.flatten(pred.data.max(1, keepdim=True)[1])
+                # correct += pred_val.eq(Y.data.view_as(pred_val)).sum().item()
+                correct += (pred_val == Y).sum().item()
                 iter_mini_batches.set_postfix(test_loss_accum=test_loss)
         test_loss /= len(test_loader.dataset)
         size_test_dataset = len(test_loader.dataset)
@@ -255,26 +259,17 @@ class CnnRunner:
             with timeit_:
                 iter_mini_batches = enumerate(train_loader)
                 for num_mini_batches, (X, Y) in iter_mini_batches:
-                    print(f"{_}-{num_mini_batches}")
-                    print("zerograd")
                     optimizer.zero_grad()
-                    print("self.my_model(X)")
                     pred = self.my_model(X)
-                    print("pred.data.max(1, keepdim=True)[1]")
-                    pred_val = pred.data.max(1, keepdim=True)[1]
-                    print("pred_val.eq(Y.data.view_as(pred_val)).sum().item()")
-                    correct += pred_val.eq(Y.data.view_as(pred_val)).sum().item()
-                    print("self.loss_function(pred, Y)")
+                    pred_val = torch.flatten(pred.data.max(1, keepdim=True)[1])
+                    # correct += pred_val.eq(Y.data.view_as(pred_val)).sum().item()
+                    correct += (pred_val == Y).sum().item()
                     loss = self.loss_function(pred, Y)
                     del pred_val
                     del pred
-                    print("loss.item()")
                     iter_loss = loss.item()
-                    print("epoch_loss += iter_loss")
                     epoch_loss += iter_loss
-                    print("loss.backward()")
                     loss.backward()
-                    print("optimizer.step()")
                     optimizer.step()
                 # all_objects = muppy.get_objects()
                 # sum1 = summary.summarize(all_objects)
@@ -283,7 +278,7 @@ class CnnRunner:
                     self.logger.info(f"Epoch: {_}")
                     for name, size in sorted(
                             ((name, sys.getsizeof(value)) for name, value in globals().items()),
-                            key=lambda x: -x[1])[:10]:
+                            key=lambda x: -x[1])[:3]:
                         self.logger.info("{:>30}: {:>8}".format(name, sizeof_fmt(size)))
 
             epoch_loss /= (num_mini_batches + 1)
@@ -353,10 +348,10 @@ class CnnRunner:
         else:
             for conf_key in data:
                 subset = data[conf_key]
-                dict_to_save = {"test_loss": subset[0].numpy().item(),
-                                "correct": subset[1].numpy().item(),
+                dict_to_save = {"test_loss": subset[0],
+                                "correct": subset[1],
                                 "total": subset[2],
-                                "percent_correct": subset[3].numpy().item()}
+                                "percent_correct": subset[3]}
                 np.save(file=os.path.join(self.results_path, f"test_results_{conf_key}.npy"),
                         arr=np.array(dict_to_save))
 
