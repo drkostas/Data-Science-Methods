@@ -237,7 +237,7 @@ class CnnRunner:
 
     def train_parallel(self, train_loader: DataLoader) -> Tuple[List, List, List, List]:
 
-        my_model = nn.DataParallel(self.my_model)
+        my_model = nn.parallel.DistributedDataParallel(self.my_model)
         learning_rate = self.learning_rate * dist.get_world_size()
         optimizer = optim.SGD(my_model.parameters(), lr=learning_rate)
 
@@ -363,12 +363,10 @@ class CnnRunner:
         if self.data_parallel:
             mode = "Data Parallel"
             train_sampler = DistributedSampler(mnist_train)
-            test_sampler = DistributedSampler(mnist_test)
             shuffle = False
         else:
             mode = "Non-parallel"
             train_sampler = None
-            test_sampler = None
             shuffle = True
         self.logger.info(f"{mode} mode with {num_processes} proc(s) requested..")
         train_loader = torch.utils.data.DataLoader(mnist_train,
@@ -378,9 +376,8 @@ class CnnRunner:
                                                    sampler=train_sampler)
         test_loader = torch.utils.data.DataLoader(mnist_test,
                                                   batch_size=self.batch_size_test,
-                                                  shuffle=shuffle,
-                                                  num_workers=num_processes,
-                                                  sampler=test_sampler)
+                                                  shuffle=True,
+                                                  num_workers=num_processes)
         # Train and Test
         if self.data_parallel:
             train_results, test_results = self.run_data_parallel(train_loader, test_loader)
