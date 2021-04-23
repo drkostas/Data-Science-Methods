@@ -13,7 +13,7 @@ non_parallel:
         name: mnist
         save_path: ../data/mnist
     type: optional  # required or optional
-    enabled: true  # true or false
+    enabled: false  # true or false
 data_parallel:
   - properties:
       num_processes:

@@ -1,4 +1,6 @@
-import os, sys
+import os
+import sys
+import psutil
 from typing import List, Dict, IO, Tuple, Union
 import traceback
 import argparse
@@ -229,12 +231,6 @@ class CnnRunner:
         return train_results, test_results
 
     def train_parallel(self, train_loader: DataLoader) -> Tuple[List, List, List]:
-        def sizeof_fmt(num, suffix='B'):
-            for unit in ['', 'Ki', 'Mi', 'Gi', 'Ti', 'Pi', 'Ei', 'Zi']:
-                if abs(num) < 1024.0:
-                    return "%3.1f %s%s" % (num, unit, suffix)
-                num /= 1024.0
-            return "%.1f %s%s" % (num, 'Yi', suffix)
 
         my_model = nn.parallel.DistributedDataParallel(self.my_model)
         learning_rate = self.learning_rate * dist.get_world_size()
@@ -271,15 +267,9 @@ class CnnRunner:
                     epoch_loss += iter_loss
                     loss.backward()
                     optimizer.step()
-                # all_objects = muppy.get_objects()
-                # sum1 = summary.summarize(all_objects)
-                # summary.print_(sum1)
                 if self.rank == 0:
-                    self.logger.info(f"Epoch: {_}")
-                    for name, size in sorted(
-                            ((name, sys.getsizeof(value)) for name, value in globals().items()),
-                            key=lambda x: -x[1])[:3]:
-                        self.logger.info("{:>30}: {:>8}".format(name, sizeof_fmt(size)))
+                    process = psutil.Process(os.getpid())
+                    self.logger.info(f"RSS Mem: {int(process.memory_info().rss)/1024/1024/1024:.2f} GB")
 
             epoch_loss /= (num_mini_batches + 1)
             epoch_losses.append(epoch_loss)
