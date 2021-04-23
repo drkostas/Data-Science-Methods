@@ -11,7 +11,7 @@ import torch
 from torch import nn, optim, backends
 from torch.nn import functional as F
 from torchvision import transforms, datasets
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, DistributedSampler
 import torch.distributed as dist
 # Custom stuff
 from playground import ColorizedLogger, timeit
@@ -357,20 +357,30 @@ class CnnRunner:
         Returns:
         """
 
-        mode = "Data Parallel" if self.data_parallel else "Non-parallel"
-        self.logger.info(f"{mode} mode with {num_processes} proc(s) requested..")
-
         # Load the Dataset
         mnist_train, mnist_test = self.dataset_loader()
         # Create Train and Test loaders
+        if self.data_parallel:
+            mode = "Data Parallel"
+            train_sampler = DistributedSampler(mnist_train)
+            test_sampler = DistributedSampler(mnist_test)
+            shuffle = False
+        else:
+            mode = "Non-parallel"
+            train_sampler = None
+            test_sampler = None
+            shuffle = True
+        self.logger.info(f"{mode} mode with {num_processes} proc(s) requested..")
         train_loader = torch.utils.data.DataLoader(mnist_train,
                                                    batch_size=self.batch_size_train,
-                                                   shuffle=True,
-                                                   num_workers=num_processes)
+                                                   shuffle=shuffle,
+                                                   num_workers=num_processes,
+                                                   sampler=train_sampler)
         test_loader = torch.utils.data.DataLoader(mnist_test,
                                                   batch_size=self.batch_size_test,
-                                                  shuffle=True,
-                                                  num_workers=num_processes)
+                                                  shuffle=shuffle,
+                                                  num_workers=num_processes,
+                                                  sampler=test_sampler)
         # Train and Test
         if self.data_parallel:
             train_results, test_results = self.run_data_parallel(train_loader, test_loader)

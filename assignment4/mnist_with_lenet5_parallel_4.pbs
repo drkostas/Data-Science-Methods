@@ -7,7 +7,7 @@
 #PBS -A ACF-UTK0150
 #PBS -o /lustre/haven/proj/UTK0150/kgeorgio/playground/logs/assignment4_$PBS_JOBID.o
 #PBS -e /lustre/haven/proj/UTK0150/kgeorgio/playground/logs/assignment4_$PBS_JOBID.e
-#PBS -l nodes=1:ppn=4 # ppn=process per node
+#PBS -l nodes=1:ppn=10 # ppn=process per node
 #PBS -l walltime=00:30:00
 #PBS -l qos=condo
 
