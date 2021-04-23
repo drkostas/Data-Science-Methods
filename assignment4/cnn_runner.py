@@ -274,10 +274,10 @@ class CnnRunner:
                     epoch_loss += iter_loss
                     loss.backward()
                     optimizer.step()
-                if self.rank == 0:
-                    all_objects = muppy.get_objects()
-                    sum1 = summary.summarize(all_objects)
-                    summary.print_(sum1)
+                    if self.rank == 0 and num_mini_batches % 10 == 0:
+                        all_objects = muppy.get_objects()
+                        sum1 = summary.summarize(all_objects)
+                        summary.print_(sum1)
 
             epoch_loss /= (num_mini_batches + 1)
             epoch_losses.append(epoch_loss)
