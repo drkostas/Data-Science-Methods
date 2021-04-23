@@ -255,13 +255,13 @@ class CnnRunner:
 
     def train_parallel(self, train_loader: DataLoader) -> Tuple[List, List, List]:
         def print_stats(ptext):
-            if self.rank == 0:
-                process = psutil.Process(os.getpid())
-                self.logger.info(ptext)
-                self.logger.info(
-                    f"RSS Mem: {int(process.memory_info().rss) / 1024 / 1024 / 1024:.2f} GB")
-                self.logger.info(
-                    f"VMS Mem: {int(process.memory_info().vms) / 1024 / 1024 / 1024:.2f} GB")
+            # if self.rank == 0:
+            process = psutil.Process(os.getpid())
+            self.logger.info(ptext)
+            self.logger.info(
+                f"RSS Mem: {int(process.memory_info().rss) / 1024 / 1024 / 1024:.2f} GB")
+            self.logger.info(
+                f"VMS Mem: {int(process.memory_info().vms) / 1024 / 1024 / 1024:.2f} GB")
 
         my_model = nn.parallel.DistributedDataParallel(self.my_model)
         learning_rate = self.learning_rate * dist.get_world_size()
