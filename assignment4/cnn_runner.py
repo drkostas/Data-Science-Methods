@@ -105,8 +105,8 @@ class CnnRunner:
         backends.cudnn.enabled = False
         torch.manual_seed(seed)
         # Create the training modules
-        # self.my_model = LeNet5(num_classes=10)
-        self.my_model = VolModel(num_classes=10)
+        self.my_model = LeNet5(num_classes=10)
+        # self.my_model = VolModel(num_classes=10)
 
         self.loss_function = nn.CrossEntropyLoss()
         self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -143,6 +143,41 @@ class CnnRunner:
         if not os.path.exists(run_specific_path):
             os.makedirs(run_specific_path)
         return run_specific_path
+
+    def store_results(self, data: Union[Tuple, Dict], num_processes: int, train: bool) -> None:
+        if not os.path.exists(self.results_path):
+            os.makedirs(self.results_path)
+
+        # Create Run Specific Metadata file
+        metadata = {"num_processes": num_processes,
+                    "epochs": self.epochs,
+                    "learning_rate": self.learning_rate,
+                    "momentum": self.momentum,
+                    "batch_size_train": self.batch_size_train,
+                    "batch_size_test": self.batch_size_test,
+                    "data_parallel": self.data_parallel}
+        # Save metadata as numpy dict and as human-readable csv
+        np.save(file=os.path.join(self.results_path, "metadata.npy"), arr=np.array(metadata))
+        metadata_csv = np.array([tuple(metadata.keys()), tuple(metadata.values())], dtype=str)
+        np.savetxt(os.path.join(self.results_path, "metadata.csv"), metadata_csv,
+                   fmt="%s", delimiter=",")
+
+        if train:
+            np.save(file=os.path.join(self.results_path, "train_epoch_accuracies.npy"),
+                    arr=np.array(data[0]))
+            np.save(file=os.path.join(self.results_path, "train_epoch_losses.npy"),
+                    arr=np.array(data[1]))
+            np.save(file=os.path.join(self.results_path, "train_epoch_times.npy"),
+                    arr=np.array(data[2]))
+        else:
+            for conf_key in data:
+                subset = data[conf_key]
+                dict_to_save = {"test_loss": subset[0],
+                                "correct": subset[1],
+                                "total": subset[2],
+                                "percent_correct": subset[3]}
+                np.save(file=os.path.join(self.results_path, f"test_results_{conf_key}.npy"),
+                        arr=np.array(dict_to_save))
 
     def dataset_loader(self) -> Tuple[datasets.MNIST, datasets.MNIST]:
         if self.dataset['name'].lower() == 'mnist':
@@ -195,8 +230,6 @@ class CnnRunner:
                     # correct += pred_val.eq(Y.data.view_as(pred_val)).sum().item()
                     correct += (pred_val == Y).sum().item()
                     loss = self.loss_function(pred, Y)
-                    del pred_val
-                    del pred
                     iter_loss = loss.item()
                     epoch_loss += iter_loss
                     loss.backward()
@@ -213,55 +246,7 @@ class CnnRunner:
 
         return epoch_accuracies, epoch_losses, epoch_times
 
-    def test_non_parallel(self, test_loader: DataLoader) -> Tuple[float, int, int, float]:
-        self.my_model.eval()
-        test_loss = 0.0
-        correct = 0
-        with torch.no_grad():
-            iter_mini_batches = tqdm(enumerate(test_loader), desc='Testing', leave=False)
-            for num_mini_batches, (X, Y) in iter_mini_batches:
-                pred = self.my_model(X)
-                test_loss += self.loss_function(pred, Y).item()
-                pred_val = torch.flatten(pred.data.max(1, keepdim=True)[1])
-                # correct += pred_val.eq(Y.data.view_as(pred_val)).sum().item()
-                correct += (pred_val == Y).sum().item()
-                iter_mini_batches.set_postfix(test_loss_accum=test_loss)
-        test_loss /= len(test_loader.dataset)
-        size_test_dataset = len(test_loader.dataset)
-        accuracy = correct / size_test_dataset
-
-        return test_loss, correct, size_test_dataset, accuracy
-
-    def run_non_parallel(self, train_loader: DataLoader, test_loader: DataLoader) \
-            -> Tuple[Tuple, Dict]:
-
-        test_results = {}
-        # Test with randomly initialize parameters
-        if self.test_before_train:
-            test_results["before"] = self.test_non_parallel(test_loader)
-            self.logger.info("Randomly Initialized params testing:", color="blue")
-            self.print_test_results(*test_results["before"])
-
-        # Training
-        train_results = self.train_non_parallel(train_loader)
-        self.logger.info("Training Finished! Results:", color="magenta")
-
-        # Testing
-        test_results["after"] = self.test_non_parallel(test_loader)
-        self.logger.info("Testing Finished! Storing results..", color="blue")
-        self.print_test_results(*test_results["after"])
-
-        return train_results, test_results
-
-    def train_parallel(self, train_loader: DataLoader) -> Tuple[List, List, List]:
-        def print_stats(ptext):
-            # if self.rank == 0:
-            process = psutil.Process(os.getpid())
-            self.logger.info(ptext)
-            self.logger.info(
-                f"RSS Mem: {int(process.memory_info().rss) / 1024 / 1024 / 1024:.2f} GB")
-            self.logger.info(
-                f"VMS Mem: {int(process.memory_info().vms) / 1024 / 1024 / 1024:.2f} GB")
+    def train_data_parallel(self, train_loader: DataLoader) -> Tuple[List, List, List]:
 
         my_model = nn.parallel.DistributedDataParallel(self.my_model)
         learning_rate = self.learning_rate * dist.get_world_size()
@@ -287,24 +272,19 @@ class CnnRunner:
                 iter_mini_batches = enumerate(train_loader)
                 for num_mini_batches, (X, Y) in iter_mini_batches:
                     optimizer.zero_grad()
-                    print_stats("after zero grad:")
                     pred = self.my_model(X)
-                    print_stats("after pred:")
-                    # pred_val = torch.flatten(pred.data.max(1, keepdim=True)[1])
+                    pred_val = torch.flatten(pred.data.max(1, keepdim=True)[1])
                     # correct += pred_val.eq(Y.data.view_as(pred_val)).sum().item()
-                    # correct += (pred_val == Y).sum().item()
+                    correct += (pred_val == Y).sum().item()
                     loss = self.loss_function(pred, Y)
-                    print_stats("after comp loss:")
                     iter_loss = loss.item()
-                    print_stats("after getting loss:")
                     epoch_loss += iter_loss
                     loss.backward()
                     optimizer.step()
 
-
             epoch_loss /= (num_mini_batches + 1)
             epoch_losses.append(epoch_loss)
-            epoch_accuracy = correct / size_train_dataset
+            epoch_accuracy = correct / (size_train_dataset / dist.get_world_size())
             epoch_accuracies.append(epoch_accuracy)
             epoch_time = timeit_.total
             epoch_times.append(epoch_time)
@@ -313,6 +293,46 @@ class CnnRunner:
                                         epoch_time=epoch_time)
 
         return epoch_accuracies, epoch_losses, epoch_times
+
+    def test(self, test_loader: DataLoader) -> Tuple[float, int, int, float]:
+        self.my_model.eval()
+        test_loss = 0.0
+        correct = 0
+        with torch.no_grad():
+            iter_mini_batches = tqdm(enumerate(test_loader), desc='Testing', leave=False)
+            for num_mini_batches, (X, Y) in iter_mini_batches:
+                pred = self.my_model(X)
+                test_loss += self.loss_function(pred, Y).item()
+                pred_val = torch.flatten(pred.data.max(1, keepdim=True)[1])
+                # correct += pred_val.eq(Y.data.view_as(pred_val)).sum().item()
+                correct += (pred_val == Y).sum().item()
+                iter_mini_batches.set_postfix(test_loss_accum=test_loss)
+        test_loss /= len(test_loader.dataset)
+        size_test_dataset = len(test_loader.dataset)
+        accuracy = correct / size_test_dataset
+
+        return test_loss, correct, size_test_dataset, accuracy
+
+    def run_non_parallel(self, train_loader: DataLoader, test_loader: DataLoader) \
+            -> Tuple[Tuple, Dict]:
+
+        test_results = {}
+        # Test with randomly initialize parameters
+        if self.test_before_train:
+            test_results["before"] = self.test(test_loader)
+            self.logger.info("Randomly Initialized params testing:", color="blue")
+            self.print_test_results(*test_results["before"])
+
+        # Training
+        train_results = self.train_non_parallel(train_loader)
+        self.logger.info("Training Finished! Results:", color="magenta")
+
+        # Testing
+        test_results["after"] = self.test(test_loader)
+        self.logger.info("Testing Finished! Storing results..", color="blue")
+        self.print_test_results(*test_results["after"])
+
+        return train_results, test_results
 
     def run_data_parallel(self, train_loader: DataLoader, test_loader: DataLoader) \
             -> Tuple[Tuple, Dict]:
@@ -323,58 +343,23 @@ class CnnRunner:
         test_results = {}
         # Test with randomly initialize parameters
         if self.test_before_train:
-            test_results["before"] = self.test_non_parallel(test_loader)
+            test_results["before"] = self.test(test_loader)
             if self.rank == 0:
                 self.logger.info("Randomly Initialized params testing:", color="blue")
                 self.print_test_results(*test_results["before"])
 
         # Training
-        train_results = self.train_parallel(train_loader)
+        train_results = self.train_data_parallel(train_loader)
         if self.rank == 0:
             self.logger.info("Training Finished! Results:", color="magenta")
 
         # Testing
-        test_results["after"] = self.test_non_parallel(test_loader)
+        test_results["after"] = self.test(test_loader)
         if self.rank == 0:
             self.logger.info("Testing Finished! Storing results..", color="blue")
             self.print_test_results(*test_results["after"])
 
         return train_results, test_results
-
-    def store_results(self, data: Union[Tuple, Dict], num_processes: int, train: bool) -> None:
-        if not os.path.exists(self.results_path):
-            os.makedirs(self.results_path)
-
-        # Create Run Specific Metadata file
-        metadata = {"num_processes": num_processes,
-                    "epochs": self.epochs,
-                    "learning_rate": self.learning_rate,
-                    "momentum": self.momentum,
-                    "batch_size_train": self.batch_size_train,
-                    "batch_size_test": self.batch_size_test,
-                    "data_parallel": self.data_parallel}
-        # Save metadata as numpy dict and as human-readable csv
-        np.save(file=os.path.join(self.results_path, "metadata.npy"), arr=np.array(metadata))
-        metadata_csv = np.array([tuple(metadata.keys()), tuple(metadata.values())], dtype=str)
-        np.savetxt(os.path.join(self.results_path, "metadata.csv"), metadata_csv,
-                   fmt="%s", delimiter=",")
-
-        if train:
-            np.save(file=os.path.join(self.results_path, "train_epoch_accuracies.npy"),
-                    arr=np.array(data[0]))
-            np.save(file=os.path.join(self.results_path, "train_epoch_losses.npy"),
-                    arr=np.array(data[1]))
-            np.save(file=os.path.join(self.results_path, "train_epoch_times.npy"),
-                    arr=np.array(data[2]))
-        else:
-            for conf_key in data:
-                subset = data[conf_key]
-                dict_to_save = {"test_loss": subset[0],
-                                "correct": subset[1],
-                                "total": subset[2],
-                                "percent_correct": subset[3]}
-                np.save(file=os.path.join(self.results_path, f"test_results_{conf_key}.npy"),
-                        arr=np.array(dict_to_save))
 
     def run(self, num_processes: int) -> None:
         """

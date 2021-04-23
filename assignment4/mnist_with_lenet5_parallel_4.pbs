@@ -7,7 +7,7 @@
 #PBS -A ACF-UTK0150
 #PBS -o /lustre/haven/proj/UTK0150/kgeorgio/playground/logs/assignment4_$PBS_JOBID.o
 #PBS -e /lustre/haven/proj/UTK0150/kgeorgio/playground/logs/assignment4_$PBS_JOBID.e
-#PBS -l nodes=1:ppn=10 # ppn=process per node
+#PBS -l nodes=1:ppn=16 # ppn=process per node
 #PBS -l walltime=00:30:00
 #PBS -l qos=condo
 
@@ -23,12 +23,12 @@ export MASTER_PORT=34567
 # CD to the class lustre project directory
 cd /lustre/haven/proj/UTK0150/$USER/playground/assignment4
 # Run assignment4.py with the appropriate arguments
-#CONDA_BIN="/nics/b/home/kgeorgio/.conda/envs/dse512_playground/bin/"
-#conf="/lustre/haven/proj/UTK0150/${USER}/playground/confs/assignment4_parallel_4.yml"
-#log="/lustre/haven/proj/UTK0150/${USER}/playground/logs/assignment4.log"
-#command="${CONDA_BIN}python assignment4.py -c ${conf} -l ${log}"
+CONDA_BIN="/nics/b/home/kgeorgio/.conda/envs/dse512_playground/bin/"
+conf="/lustre/haven/proj/UTK0150/${USER}/playground/confs/assignment4_parallel_4.yml"
+log="/lustre/haven/proj/UTK0150/${USER}/playground/logs/assignment4.log"
+command="${CONDA_BIN}python assignment4.py -c ${conf} -l ${log}"
 
-//nics/b/home/kgeorgio/.conda/envs/dse512_playground/bin/mpirun -n 4 /nics/b/home/kgeorgio/.conda/envs/dse512_playground/bin/python /lustre/haven/proj/UTK0150/kgeorgio/playground/assignment4/cnn_runner.py --dataset-name mnist --dataset-path /lustre/haven/proj/UTK0150/kgeorgio/playground/data/mnist -ep 30 -btr 64 -bte 1000 -lr 0.01 -mo 0.5 -l /lustre/haven/proj/UTK0150/kgeorgio/playground/logs/assignment4_data_parallel_4nprocs.log
+#//nics/b/home/kgeorgio/.conda/envs/dse512_playground/bin/mpirun -n 4 /nics/b/home/kgeorgio/.conda/envs/dse512_playground/bin/python /lustre/haven/proj/UTK0150/kgeorgio/playground/assignment4/cnn_runner.py --dataset-name mnist --dataset-path /lustre/haven/proj/UTK0150/kgeorgio/playground/data/mnist -ep 30 -btr 64 -bte 1000 -lr 0.01 -mo 0.5 -l /lustre/haven/proj/UTK0150/kgeorgio/playground/logs/assignment4_data_parallel_4nprocs.log
 
 #eval $command
 
