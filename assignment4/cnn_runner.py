@@ -384,12 +384,10 @@ class CnnRunner:
         train_loader = torch.utils.data.DataLoader(mnist_train,
                                                    batch_size=self.batch_size_train,
                                                    shuffle=shuffle,
-                                                   num_workers=num_processes,
                                                    sampler=train_sampler)
         test_loader = torch.utils.data.DataLoader(mnist_test,
                                                   batch_size=self.batch_size_test,
-                                                  shuffle=True,
-                                                  num_workers=num_processes)
+                                                  shuffle=True)
         # Train and Test
         if self.data_parallel:
             train_results, test_results = self.run_data_parallel(train_loader, test_loader)
