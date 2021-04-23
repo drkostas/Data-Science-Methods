@@ -78,7 +78,7 @@ class CnnRunner:
         self.test_before_train = test_before_train
 
         # Configure torch variables
-        backends.cudnn.enabled = False
+        backends.cudnn.enabled = True
         torch.manual_seed(seed)
         # Create the training modules
         self.my_model = LeNet5(num_classes=10)
@@ -268,10 +268,10 @@ class CnnRunner:
                 # sum1 = summary.summarize(all_objects)
                 # summary.print_(sum1)
                 if self.rank == 0:
+                    self.logger.info(f"Epoch: {_}")
                     for name, size in sorted(
                             ((name, sys.getsizeof(value)) for name, value in globals().items()),
                             key=lambda x: -x[1])[:10]:
-                        self.logger.info(f"Epoch: {_}")
                         self.logger.info("{:>30}: {:>8}".format(name, sizeof_fmt(size)))
 
             epoch_loss /= (num_mini_batches + 1)
