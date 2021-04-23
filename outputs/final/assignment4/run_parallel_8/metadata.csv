@@ -1,0 +1,2 @@
+num_processes,epochs,learning_rate,momentum,batch_size_train,batch_size_test,data_parallel
+8,30,0.05,0.5,128,1000,True
