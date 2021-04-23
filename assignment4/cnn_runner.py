@@ -6,6 +6,7 @@ import logging
 from glob import glob
 from tqdm import tqdm
 import numpy as np
+from pympler import muppy, summary
 # Torch & Torch Vision
 import torch
 from torch import nn, optim, backends
@@ -59,9 +60,10 @@ class CnnRunner:
                  learning_rate: float, test_before_train: bool, momentum: float = 0,
                  seed: int = 1, data_parallel: bool = False, log_path: str = None):
         # Set the object variables
-        if log_path:
-            self.__log_setup(log_path=log_path, clear_log=True)
-        self.logger = ColorizedLogger(f'CnnRunner', 'green')
+        if self.rank in (None, 0):
+            if log_path:
+                self.__log_setup(log_path=log_path, clear_log=True)
+            self.logger = ColorizedLogger(f'CnnRunner', 'green')
         self.dataset = dataset
         self.epochs = epochs
         self.learning_rate = learning_rate
@@ -271,6 +273,10 @@ class CnnRunner:
                     epoch_loss += iter_loss
                     loss.backward()
                     optimizer.step()
+                if self.rank == 0:
+                    all_objects = muppy.get_objects()
+                    sum1 = summary.summarize(all_objects)
+                    summary.print_(sum1)
 
             epoch_loss /= (num_mini_batches + 1)
             epoch_losses.append(epoch_loss)
@@ -288,7 +294,6 @@ class CnnRunner:
             -> Tuple[Tuple, Dict]:
 
         if self.rank == 0:
-            self.logger.info("Parallel mode requested..")
             self.logger.info(f"World size: {dist.get_world_size()}")
 
         test_results = {}
@@ -368,7 +373,8 @@ class CnnRunner:
             mode = "Non-parallel"
             train_sampler = None
             shuffle = True
-        self.logger.info(f"{mode} mode with {num_processes} proc(s) requested..")
+        if self.rank in (None, 0):
+            self.logger.info(f"{mode} mode with {num_processes} proc(s) requested..")
         train_loader = torch.utils.data.DataLoader(mnist_train,
                                                    batch_size=self.batch_size_train,
                                                    shuffle=shuffle,
