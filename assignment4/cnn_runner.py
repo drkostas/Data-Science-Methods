@@ -78,7 +78,7 @@ class CnnRunner:
         self.test_before_train = test_before_train
 
         # Configure torch variables
-        backends.cudnn.enabled = True
+        backends.cudnn.enabled = False
         torch.manual_seed(seed)
         # Create the training modules
         self.my_model = LeNet5(num_classes=10)
@@ -255,14 +255,26 @@ class CnnRunner:
             with timeit_:
                 iter_mini_batches = enumerate(train_loader)
                 for num_mini_batches, (X, Y) in iter_mini_batches:
+                    print(f"{_}-{num_mini_batches}")
+                    print("zerograd")
                     optimizer.zero_grad()
+                    print("self.my_model(X)")
                     pred = self.my_model(X)
+                    print("pred.data.max(1, keepdim=True)[1]")
                     pred_val = pred.data.max(1, keepdim=True)[1]
+                    print("pred_val.eq(Y.data.view_as(pred_val)).sum().item()")
                     correct += pred_val.eq(Y.data.view_as(pred_val)).sum().item()
+                    print("self.loss_function(pred, Y)")
                     loss = self.loss_function(pred, Y)
+                    del pred_val
+                    del pred
+                    print("loss.item()")
                     iter_loss = loss.item()
+                    print("epoch_loss += iter_loss")
                     epoch_loss += iter_loss
+                    print("loss.backward()")
                     loss.backward()
+                    print("optimizer.step()")
                     optimizer.step()
                 # all_objects = muppy.get_objects()
                 # sum1 = summary.summarize(all_objects)

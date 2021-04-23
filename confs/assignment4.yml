@@ -17,8 +17,8 @@ non_parallel:
 data_parallel:
   - properties:
       num_processes:
-#        - 1
-        - 2
+        - 1
+#        - 2
 #        - 4
 #        - 8
       epochs: 1
