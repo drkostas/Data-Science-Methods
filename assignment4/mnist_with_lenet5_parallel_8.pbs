@@ -19,7 +19,7 @@ set -x
 ##
 
 # CD to the class lustre project directory
-cd /lustre/haven/proj/UTK0150/$USER/assignment4
+cd /lustre/haven/proj/UTK0150/$USER/playground/assignment4
 # Run assignment4.py with the appropriate arguments
 CONDA_BIN="/nics/b/home/kgeorgio/.conda/envs/dse512_playground/bin/"
 conf="/lustre/haven/proj/UTK0150/${USER}/playground/confs/assignment4_parallel_8.yml"
