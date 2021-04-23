@@ -1,0 +1,16 @@
+tag: all  # required_only or all
+data_parallel:
+  - properties:
+      num_processes:
+        - 1
+      epochs: 30
+      batch_size_train: 64
+      batch_size_test: 1000
+      learning_rate: 0.01
+      momentum: 0.5
+      test_before_train: false
+      dataset:
+        name: mnist
+        save_path: ../data/mnist
+    type: required  # required or optional
+    enabled: true  # true or false

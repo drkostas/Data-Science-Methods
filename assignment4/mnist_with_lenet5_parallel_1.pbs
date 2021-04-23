@@ -1,0 +1,31 @@
+#!/bin/bash
+#
+#PBS -S /bin/bash
+#PBS -N drkostas_mnist_with_lenet5_parallel_1
+#PBS -M default@mail
+#PBS -m abe
+#PBS -A ACF-UTK0150
+#PBS -o /lustre/haven/proj/UTK0150/kgeorgio/playground/logs/assignment4_$PBS_JOBID.o
+#PBS -e /lustre/haven/proj/UTK0150/kgeorgio/playground/logs/assignment4_$PBS_JOBID.e
+#PBS -l nodes=1:ppn=1 # ppn=process per node
+#PBS -l walltime=00:30:00
+#PBS -l qos=condo
+
+# Print commands and their arguments in a sequential order
+set -x
+
+##
+## Job Code
+##
+
+# CD to the class lustre project directory
+cd /lustre/haven/proj/UTK0150/$USER/assignment4
+# Run assignment4.py with the appropriate arguments
+CONDA_BIN="/nics/b/home/kgeorgio/.conda/envs/dse512_playground/bin/"
+conf="/lustre/haven/proj/UTK0150/${USER}/playground/confs/assignment4_parallel_1.yml"
+log="/lustre/haven/proj/UTK0150/${USER}/playground/logs/assignment4.log"
+command="${CONDA_BIN}python assignment4.py -c ${conf} -l ${log}"
+eval $command
+
+qstat -f $PBS_JOBID
+

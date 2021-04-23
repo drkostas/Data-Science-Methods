@@ -134,3 +134,4 @@ dmypy.json
 *.gz
 */TCGA-PANCAN-HiSeq-801x20531
 outputs/*.txt
+data/mnist/*

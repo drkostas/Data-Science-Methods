@@ -3,10 +3,25 @@ non_parallel:
   - properties:
       num_processes:
         - 1
+      epochs: 30
+      batch_size_train: 64
+      batch_size_test: 1000
+      learning_rate: 0.01
+      momentum: 0.5
+      test_before_train: false
+      dataset:
+        name: mnist
+        save_path: ../data/mnist
+    type: optional  # required or optional
+    enabled: true  # true or false
+data_parallel:
+  - properties:
+      num_processes:
+        - 1
         - 2
-#        - 4
-#        - 8
-      epochs: 3
+        - 4
+        - 8
+      epochs: 30
       batch_size_train: 64
       batch_size_test: 1000
       learning_rate: 0.01
