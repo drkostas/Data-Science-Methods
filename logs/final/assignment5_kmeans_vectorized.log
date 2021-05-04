@@ -1,0 +1,21 @@
+2021-05-03 22:20:44 FancyLogger  INFO     Logger is set. Log file path: /playground/logs/assignment5_kmeans_vectorized.log
+2021-05-03 22:20:44 Main         INFO     Starting Assignment 2
+2021-05-03 22:20:44 Config       INFO     Configuration file loaded successfully
+2021-05-03 22:20:44 Main         INFO     Invoking kmeans.py(vectorized_jacob) for 5 clusters and the iris dataset
+2021-05-03 22:20:45 FancyLogger  INFO     Logger is set. Log file path: /playground/logs/assignment5_kmeans_vectorized.log
+2021-05-03 22:20:45 KMeans vectorized_jacob Proc(0) INFO     Started with 1 processes.
+2021-05-03 22:20:45 KMeans vectorized_jacob Proc(0) INFO     Dataset iris loaded. Shape: (150, 4).
+2021-05-03 22:20:45 Timeit       INFO     Init Time: 0.00029 sec(s)
+2021-05-03 22:20:45 Timeit       INFO     First Loop Distances Calc Time: 0.01065 sec(s)
+2021-05-03 22:20:45 Timeit       INFO     First Loop Cluster Assignment Time: 0.00098 sec(s)
+2021-05-03 22:20:45 Timeit       INFO     First Loop Centroids Update Time: 0.00229 sec(s)
+2021-05-03 22:20:45 KMeans vectorized_jacob Proc(0) INFO     Final Cluster Assignments:
+[4 4 4 4 4 2 4 4 4 4 2 4 4 4 2 2 2 4 2 2 2 2 4 4 4 4 4 2 4 4 4 2 2 2 4 4 2
+ 4 4 4 4 4 4 4 2 4 2 4 2 4 0 0 0 1 0 1 0 1 0 1 1 1 1 0 1 0 1 1 0 1 0 1 0 0
+ 0 0 0 0 0 1 1 1 1 0 1 0 0 1 1 1 1 0 1 1 1 1 1 1 1 1 3 0 3 0 3 3 1 3 3 3 0
+ 0 3 0 0 0 0 3 3 0 3 0 3 0 3 3 0 0 0 3 3 3 0 0 0 3 3 0 0 3 3 0 0 3 3 0 0 0
+ 0 0]
+2021-05-03 22:20:45 Timeit       INFO     Total Time: 0.08467 sec(s)
+
+2021-05-03 22:20:45 Main         INFO     Assignment 2 Finished
+2021-05-03 22:20:45 Timeit       INFO     Func: 'main' with args: () took: 1.67225 sec(s)
