@@ -17,4 +17,5 @@ KMEANS_VECT_LOG_DIST="${PROJ_PATH_DIST}/logs/assignment5_kmeans_vectorized.log"
 KMEANS_VECT_COMMAND="${CONDA_BIN_DIST}python ${KMEANS_VECT_EXECUTABLE_DIST} -c ${KMEANS_VECT_CONFIG_DIST} -l ${KMEANS_VECT_LOG_DIST}"
 
 # --- Run it in the container
-singularity exec --bind "$CONDA_SRC":"$CONDA_DIST" --bind "$PROJ_PATH_SRC":"$PROJ_PATH_DIST" pydatacpu.sif "$KMEANS_VECT_COMMAND"
+SINGULARITY_COMMAND="singularity exec --bind ${CONDA_SRC}:${CONDA_DIST} --bind ${PROJ_PATH_SRC}:${PROJ_PATH_DIST} pydatacpu.sif ${KMEANS_VECT_COMMAND}"
+eval $SINGULARITY_COMMAND
