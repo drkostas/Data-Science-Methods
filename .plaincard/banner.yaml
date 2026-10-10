@@ -1,0 +1,15 @@
+kind: banner
+name: Data-Science-Methods
+line: Exercises for a data science course at the University of Tennessee, run with
+  MPI.
+accent: clay
+diagram:
+- terminal:
+    label: python
+- arrow
+- server:
+    label: MPI
+    accent: true
+- arrow
+- chart:
+    label: results
